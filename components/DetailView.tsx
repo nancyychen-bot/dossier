@@ -76,8 +76,8 @@ export function DetailView({
     onUpdate(saved);
     setEditing(false);
 
-    // Auto-enrich if contact info present and profile not yet complete
-    if (!isComplete(saved) && (draft.email || draft.phone || draft.linkedin)) {
+    // Auto-enrich whenever contact info is present
+    if (draft.email || draft.phone || draft.linkedin) {
       setFetchingPhoto(true);
       try {
         const qs = new URLSearchParams();
