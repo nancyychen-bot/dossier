@@ -6,10 +6,12 @@ interface FilterChipProps {
   count?: number;
   active: boolean;
   onClick: () => void;
+  color?: string;
 }
 
-export function FilterChip({ label, count, active, onClick }: FilterChipProps) {
+export function FilterChip({ label, count, active, onClick, color }: FilterChipProps) {
   const [hover, setHover] = useState(false);
+  const activeColor = color ?? "var(--ink)";
   return (
     <button
       onClick={onClick}
@@ -21,7 +23,7 @@ export function FilterChip({ label, count, active, onClick }: FilterChipProps) {
         gap: 6,
         fontSize: 13,
         fontWeight: active ? 600 : 400,
-        color: active ? "var(--ink)" : hover ? "var(--ink)" : "var(--muted)",
+        color: active ? activeColor : hover ? "var(--ink)" : "var(--muted)",
         letterSpacing: "-0.005em",
         background: "transparent",
         border: "none",

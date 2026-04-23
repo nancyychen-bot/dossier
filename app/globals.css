@@ -131,8 +131,8 @@ textarea { resize: vertical; }
 
 @media (min-width: 900px) {
   .list-row-inner {
-    grid-template-columns: minmax(0, 2.4fr) minmax(0, 1.8fr) minmax(0, 1.6fr) 120px;
-    gap: 28px;
+    grid-template-columns: minmax(0, 1.8fr) minmax(0, 1.8fr) minmax(0, 1.4fr) minmax(0, 1fr) 120px;
+    gap: 20px;
     align-items: baseline;
   }
 }

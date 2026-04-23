@@ -58,6 +58,29 @@ export function isComplete(p: { name?: string; role?: string | null; email?: str
   return !!(p.name && p.role && p.email && p.linkedin);
 }
 
+const CITY_ALIASES: Record<string, string> = {
+  "nyc": "New York",
+  "new york city": "New York",
+  "sf": "San Francisco",
+  "san fran": "San Francisco",
+  "la": "Los Angeles",
+  "l.a.": "Los Angeles",
+  "dc": "Washington D.C.",
+  "d.c.": "Washington D.C.",
+  "washington dc": "Washington D.C.",
+  "chi": "Chicago",
+  "philly": "Philadelphia",
+  "nola": "New Orleans",
+  "ldn": "London",
+  "bk": "Brooklyn",
+  "brooklyn ny": "Brooklyn",
+};
+
+export function normalizeCity(input: string): string {
+  const key = input.trim().toLowerCase();
+  return CITY_ALIASES[key] ?? input.trim();
+}
+
 export function getInitials(name: string): string {
   return name.split(" ").filter(Boolean).map(w => w[0]).join("").toUpperCase().slice(0, 2);
 }

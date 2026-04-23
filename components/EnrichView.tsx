@@ -16,14 +16,14 @@ export function EnrichView({ people, onOpen }: EnrichViewProps) {
     <div>
       {/* Editorial lede */}
       <div style={{ paddingBottom: 28, borderBottom: "1px solid var(--ink)", marginBottom: 36 }}>
-        <div className="uc muted" style={{ marginBottom: 12 }}>Task list · things half-captured</div>
+        <div className="uc muted" style={{ marginBottom: 12 }}>Task list · acquaintances to enrich</div>
         <h1 className="serif-display-instr" style={{
           margin: 0,
           fontSize: "clamp(44px, 6.5vw, 84px)",
           lineHeight: 0.95,
           letterSpacing: "-0.015em",
         }}>
-          Incomplete.<br />
+          To enrich.<br />
           <span className="ital muted">{toEnrich.length} {toEnrich.length === 1 ? "entry" : "entries"} waiting.</span>
         </h1>
       </div>
@@ -78,7 +78,7 @@ function EnrichRow({ person, onOpen }: { person: Person; onOpen: () => void }) {
           {!person.linkedin && <span className="muted">✕ no linkedin</span>}
         </div>
       </div>
-      <FrameTag accent>incomplete →</FrameTag>
+      <FrameTag>acquaintance →</FrameTag>
     </div>
   );
 }

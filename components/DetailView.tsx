@@ -6,7 +6,7 @@ import { TextLink } from "./TextLink";
 import { UnderlinedInput } from "./UnderlinedInput";
 import { KV } from "./KV";
 import { Portrait } from "./Portrait";
-import { fmtDate, fmtDateLong, daysAgo, mkMeetingId, isComplete } from "@/lib/utils";
+import { fmtDate, fmtDateLong, daysAgo, mkMeetingId, normalizeCity } from "@/lib/utils";
 
 interface DetailViewProps {
   person: Person;
@@ -53,8 +53,7 @@ export function DetailView({
 
   const entryNum = allPeople.findIndex(p => p.id === person.id) + 1;
   const days = daysAgo(person.captured);
-  const statusTag = person.tags.find(t => ["close", "networking", "to-enrich"].includes(t)) as Tag | undefined;
-  const isIncomplete = !person.enriched && !isComplete(person);
+  const statusTag = person.tags.find(t => ["close", "networking", "to-enrich", "influential"].includes(t)) as Tag | undefined;
 
   const setField = (k: keyof Person) => (v: string) => setDraft(d => ({ ...d, [k]: v }));
 
@@ -70,7 +69,7 @@ export function DetailView({
       linkedin:  draft.linkedin,
       instagram: draft.instagram,
       met:       draft.met,
-      metCity:   draft.metCity,
+      metCity:   normalizeCity(draft.metCity || ""),
       notes:     draft.notes,
     };
     onUpdate(saved);
@@ -128,9 +127,7 @@ export function DetailView({
       {/* Hero — name + portrait */}
       <div className="profile-head">
         <div style={{ flex: 1 }}>
-          <div className="uc muted" style={{ marginBottom: 14 }}>
-            {isIncomplete ? "Entry · incomplete" : "Entry · complete"}
-          </div>
+          <div className="uc muted" style={{ marginBottom: 14 }}>Entry</div>
           <h1 className="serif-display-instr" style={{
             margin: 0,
             fontSize: "clamp(36px, 6vw, 80px)",
@@ -141,8 +138,8 @@ export function DetailView({
             {person.name}
           </h1>
           <div style={{ marginTop: 18, display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {statusTag && (statusTag !== "to-enrich" || isIncomplete) && (
-              <FrameTag accent={isIncomplete}>
+            {statusTag && (
+              <FrameTag color={statusTag === "influential" ? "#2d7a2d" : undefined}>
                 {TAG_META[statusTag].label}
               </FrameTag>
             )}
@@ -188,21 +185,22 @@ export function DetailView({
                 { k: "Role", field: "role" as keyof Person },
                 { k: "Company", field: "company" as keyof Person },
                 { k: "Met at", field: "met" as keyof Person },
-                { k: "City", field: "metCity" as keyof Person },
+                { k: "Location", field: "metCity" as keyof Person },
                 { k: "Email", field: "email" as keyof Person, type: "email" },
+                { k: "Phone", field: "phone" as keyof Person, type: "tel" },
                 { k: "Twitter", field: "twitter" as keyof Person },
                 { k: "LinkedIn", field: "linkedin" as keyof Person },
                 { k: "Instagram", field: "instagram" as keyof Person },
               ].map(({ k, field, type }) => (
                 <div key={field} style={{
                   display: "grid",
-                  gridTemplateColumns: "120px 1fr",
-                  gap: 16,
+                  gridTemplateColumns: "110px 1fr",
+                  gap: 24,
                   padding: "10px 0",
                   borderBottom: "1px solid var(--rule)",
                   alignItems: "baseline",
                 }}>
-                  <div className="uc muted" style={{ fontSize: 10 }}>{k}</div>
+                  <div className="uc muted">{k}</div>
                   <input
                     type={type || "text"}
                     value={(draft[field] as string) ?? ""}
@@ -211,9 +209,10 @@ export function DetailView({
                       width: "100%",
                       background: "transparent",
                       border: "none",
-                      borderBottom: "1px solid var(--ink)",
-                      paddingBottom: 3,
-                      fontSize: 14,
+                      borderBottom: "1px solid var(--rule)",
+                      paddingBottom: 2,
+                      fontSize: 15,
+                      fontWeight: 400,
                       color: "var(--ink)",
                       fontFamily: "inherit",
                       outline: "none",
@@ -251,7 +250,7 @@ export function DetailView({
               <KV k="Role" v={person.role} />
               <KV k="Company" v={person.company && person.company !== "—" ? person.company : null} />
               <KV k="Met" v={person.met} />
-              <KV k="Place" v={person.metCity} />
+              <KV k="Location" v={person.metCity} />
               <KV k="Captured">
                 <span>{fmtDateLong(person.captured)}</span>
                 {days != null && <span className="muted"> · {days} {days === 1 ? "day" : "days"} ago</span>}
@@ -356,6 +355,9 @@ export function DetailView({
             )}
             {statusTag !== "close" && (
               <TextLink onClick={() => onToggleStatus("close")} arrow="→">Mark friend</TextLink>
+            )}
+            {statusTag !== "influential" && (
+              <TextLink onClick={() => onToggleStatus("influential")} arrow="→">Mark influential</TextLink>
             )}
             <TextLink onClick={onDelete} arrow="✕" accent>Delete entry</TextLink>
           </div>

@@ -1,4 +1,4 @@
-export type Tag = "close" | "networking" | "to-enrich";
+export type Tag = "close" | "networking" | "to-enrich" | "influential";
 
 export interface Meeting {
   id: string;
@@ -36,7 +36,8 @@ export type RouteState =
   | { name: "enrich" };
 
 export const TAG_META: Record<Tag, { label: string; dot: string }> = {
-  close:      { label: "friend",       dot: "●" },
-  networking: { label: "acquaintance", dot: "●" },
-  "to-enrich": { label: "incomplete",  dot: "○" },
+  close:        { label: "friend",       dot: "●" },
+  networking:   { label: "acquaintance", dot: "●" },
+  "to-enrich":  { label: "acquaintance", dot: "●" },
+  influential:  { label: "influential",  dot: "●" },
 };

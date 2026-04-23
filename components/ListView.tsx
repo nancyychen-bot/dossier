@@ -3,7 +3,7 @@ import { useState, useMemo, useCallback } from "react";
 import { Person, Tag, TAG_META } from "@/lib/types";
 import { FrameTag } from "./FrameTag";
 import { FilterChip } from "./FilterChip";
-import { getQuarterLabel, fmtDate, isComplete } from "@/lib/utils";
+import { getQuarterLabel, fmtDate } from "@/lib/utils";
 import { Squiggle } from "./Squiggle";
 
 interface ListViewProps {
@@ -11,7 +11,7 @@ interface ListViewProps {
   onOpen: (id: string) => void;
 }
 
-type Filter = "all" | "to-enrich" | "networking" | "close";
+type Filter = "all" | "networking" | "close" | "influential";
 
 export function ListView({ people, onOpen }: ListViewProps) {
   const [filter, setFilter] = useState<Filter>("all");
@@ -19,23 +19,24 @@ export function ListView({ people, onOpen }: ListViewProps) {
 
   const filtered = useMemo(() => {
     let rows = people;
-    if (filter === "to-enrich") rows = rows.filter(p => !p.enriched && !isComplete(p));
-    else if (filter === "networking") rows = rows.filter(p => p.tags.includes("networking"));
+    if (filter === "networking") rows = rows.filter(p => p.tags.includes("networking") || p.tags.includes("to-enrich"));
     else if (filter === "close") rows = rows.filter(p => p.tags.includes("close"));
+    else if (filter === "influential") rows = rows.filter(p => p.tags.includes("influential"));
     if (query.trim()) {
       const q = query.trim().toLowerCase();
-      rows = rows.filter(p =>
-        (p.name + " " + p.role + " " + p.company + " " + p.met + " " + (p.notes || "")).toLowerCase().includes(q)
-      );
+      rows = rows.filter(p => {
+        const meetingText = (p.meetings || []).map(m => (m.notes || "") + " " + (m.location || "")).join(" ");
+        return (p.name + " " + p.role + " " + p.company + " " + p.met + " " + (p.notes || "") + " " + meetingText).toLowerCase().includes(q);
+      });
     }
     return rows;
   }, [people, filter, query]);
 
   const counts = useMemo(() => ({
     all: people.length,
-    "to-enrich": people.filter(p => !p.enriched && !isComplete(p)).length,
-    networking: people.filter(p => p.tags.includes("networking")).length,
+    networking: people.filter(p => p.tags.includes("networking") || p.tags.includes("to-enrich")).length,
     close: people.filter(p => p.tags.includes("close")).length,
+    influential: people.filter(p => p.tags.includes("influential")).length,
   }), [people]);
 
   const lastUpdated = useMemo(() => {
@@ -85,10 +86,10 @@ export function ListView({ people, onOpen }: ListViewProps) {
         {/* Filters + count */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 12 }}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 18, alignItems: "baseline" }}>
-            <FilterChip label="all"          count={counts.all}          active={filter === "all"}         onClick={() => setFilter("all")} />
-            <FilterChip label="incomplete"   count={counts["to-enrich"]} active={filter === "to-enrich"}   onClick={() => setFilter("to-enrich")} />
-            <FilterChip label="acquaintance" count={counts.networking}   active={filter === "networking"}  onClick={() => setFilter("networking")} />
-            <FilterChip label="friend"       count={counts.close}        active={filter === "close"}        onClick={() => setFilter("close")} />
+            <FilterChip label="all"          count={counts.all}         active={filter === "all"}         onClick={() => setFilter("all")} />
+            <FilterChip label="acquaintance" count={counts.networking}  active={filter === "networking"}  onClick={() => setFilter("networking")} />
+            <FilterChip label="friend"       count={counts.close}       active={filter === "close"}       onClick={() => setFilter("close")} />
+            <FilterChip label="influential"  count={counts.influential} active={filter === "influential"} onClick={() => setFilter("influential")} color="#2d7a2d" />
           </div>
           <div className="mono muted" style={{ fontSize: 10 }}>
             {String(people.length).padStart(3, "0")} entries · updated {lastUpdated}
@@ -110,6 +111,7 @@ export function ListView({ people, onOpen }: ListViewProps) {
         <div className="uc muted">Name</div>
         <div className="uc muted">Role · Company</div>
         <div className="uc muted">Met at</div>
+        <div className="uc muted">Location</div>
         <div className="uc muted" style={{ textAlign: "right" }}>Status</div>
       </div>
 
@@ -140,8 +142,7 @@ export function ListView({ people, onOpen }: ListViewProps) {
 
 function PersonRow({ p, onOpen, entryNum }: { p: Person; onOpen: () => void; entryNum: number }) {
   const [hover, setHover] = useState(false);
-  const statusTag = p.tags.find(t => ["close", "networking", "to-enrich"].includes(t));
-  const isIncomplete = !p.enriched && !isComplete(p);
+  const statusTag = p.tags.find(t => ["close", "networking", "to-enrich", "influential"].includes(t));
 
   return (
     <div
@@ -176,7 +177,6 @@ function PersonRow({ p, onOpen, entryNum }: { p: Person; onOpen: () => void; ent
           }}>
             {p.name}
           </span>
-          {isIncomplete && <span style={{ color: "var(--accent)", fontSize: 11 }} title="incomplete entry">●</span>}
         </div>
       </div>
 
@@ -189,13 +189,17 @@ function PersonRow({ p, onOpen, entryNum }: { p: Person; onOpen: () => void; ent
       {/* Col 3 — Met at (desktop) */}
       <div className="hide-mobile ital muted" style={{ fontSize: 13, minWidth: 0, overflowWrap: "break-word", lineHeight: 1.35 }}>
         {p.met}
-        {p.metCity && <span style={{ fontStyle: "normal" }}> · {p.metCity}</span>}
+      </div>
+
+      {/* Col 4 — Location (desktop) */}
+      <div className="hide-mobile muted" style={{ fontSize: 13, minWidth: 0, overflowWrap: "break-word", lineHeight: 1.35 }}>
+        {p.metCity}
       </div>
 
       {/* Col 4 — Status */}
       <div style={{ textAlign: "right", alignSelf: "start" }}>
-        {statusTag && (statusTag !== "to-enrich" || isIncomplete) && (
-          <FrameTag accent={isIncomplete}>
+        {statusTag && (
+          <FrameTag color={statusTag === "influential" ? "#2d7a2d" : undefined}>
             {TAG_META[statusTag].label}
           </FrameTag>
         )}
@@ -207,10 +211,12 @@ function PersonRow({ p, onOpen, entryNum }: { p: Person; onOpen: () => void; ent
 function EmptyList({ query, filter }: { query: string; filter: Filter }) {
   const line = query
     ? `Nothing matches "${query}". Try a shorter word, or check the spelling.`
-    : filter === "to-enrich"
-    ? "Nothing incomplete. Either you've done the work, or you haven't met anyone new."
     : filter === "close"
     ? "No friends yet. That's honest. Keep going."
+    : filter === "networking"
+    ? "No acquaintances yet. Get out there."
+    : filter === "influential"
+    ? "No one marked influential yet."
     : "Your dossier is empty. Go meet someone interesting.";
 
   return (

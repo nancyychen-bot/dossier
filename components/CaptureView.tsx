@@ -4,6 +4,7 @@ import { Person, Tag, TAG_META } from "@/lib/types";
 import { FilterChip } from "./FilterChip";
 import { TextLink } from "./TextLink";
 import { UnderlinedInput } from "./UnderlinedInput";
+import { normalizeCity } from "@/lib/utils";
 
 interface CaptureViewProps {
   onSave: (payload: Omit<Person, "id" | "meetings">) => string;
@@ -41,11 +42,11 @@ export function CaptureView({ onSave, onSaveAndAdd, onCancel }: CaptureViewProps
     phone: form.phone.trim() || null,
     linkedin: form.linkedin.trim() || null,
     met: form.met.trim(),
-    metCity: form.metCity.trim(),
+    metCity: normalizeCity(form.metCity),
     notes: form.notes.trim(),
     captured: today,
     tags: [form.tagKey],
-    enriched: form.tagKey !== "to-enrich",
+    enriched: form.tagKey !== "to-enrich" && form.tagKey !== "networking",
     web: null,
     twitter: null,
     instagram: null,
@@ -155,12 +156,13 @@ export function CaptureView({ onSave, onSaveAndAdd, onCancel }: CaptureViewProps
         {/* File under */}
         <Field label="File under">
           <div style={{ display: "flex", gap: 22, paddingTop: 4 }}>
-            {(["close", "networking", "to-enrich"] as Tag[]).map(t => (
+            {(["close", "networking", "to-enrich", "influential"] as Tag[]).map(t => (
               <FilterChip
                 key={t}
                 label={TAG_META[t].label}
                 active={form.tagKey === t}
                 onClick={() => setForm(f => ({ ...f, tagKey: t }))}
+                color={t === "influential" ? "#2d7a2d" : undefined}
               />
             ))}
           </div>
