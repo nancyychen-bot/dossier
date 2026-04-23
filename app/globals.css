@@ -1,0 +1,206 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Design tokens ─────────────────────────────────────────── */
+:root {
+  --bg: #FAFAF7;
+  --ink: #111111;
+  --muted: #6B6B66;
+  --rule: #D4D4CE;
+  --rule-strong: #111111;
+  --accent: #C8533C;
+  --paper: #F2F1EA;
+}
+
+/* ─── Base reset ────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+* { border-radius: 0 !important; }
+
+html { font-size: 16px; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Inter Tight", sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Typography utilities ──────────────────────────────────── */
+.mono {
+  font-family: "JetBrains Mono", monospace;
+  letter-spacing: 0;
+}
+
+.serif {
+  font-family: "EB Garamond", Georgia, serif;
+}
+
+.serif-display-tall {
+  font-family: "EB Garamond", Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.serif-display-instr {
+  font-family: "Instrument Serif", Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+}
+
+.serif-display-frauns {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 600;
+  font-variation-settings: "SOFT" 30, "WONK" 0, "opsz" 96;
+  letter-spacing: -0.025em;
+}
+
+.uc {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 10.5px;
+  font-weight: 500;
+}
+
+.muted { color: var(--muted); }
+.ital { font-style: italic; }
+.accent { color: var(--accent); }
+
+/* ─── Global form resets ────────────────────────────────────── */
+input, textarea, button, select {
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  color: inherit;
+  padding: 0;
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+textarea { resize: vertical; }
+
+/* ─── Container ─────────────────────────────────────────────── */
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+@media (min-width: 480px)  { .container { padding: 0 32px; } }
+@media (min-width: 720px)  { .container { padding: 0 40px; } }
+@media (min-width: 1024px) { .container { padding: 0 64px; } }
+@media (min-width: 1280px) { .container { padding: 0 80px; } }
+
+/* ─── Header grid ───────────────────────────────────────────── */
+.hdr-grid {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  padding-block: 14px;
+}
+
+.hdr-nav {
+  display: flex;
+  align-items: baseline;
+  gap: 22px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.hdr-nav::-webkit-scrollbar { display: none; }
+
+/* ─── Main padding ──────────────────────────────────────────── */
+.main-pad { padding-block: 24px 80px; }
+@media (min-width: 720px)  { .main-pad { padding-block: 40px 80px; } }
+@media (min-width: 1024px) { .main-pad { padding-block: 48px 80px; } }
+
+/* ─── List row grid ─────────────────────────────────────────── */
+.list-row-inner {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .list-row-inner {
+    grid-template-columns: minmax(0, 2.4fr) minmax(0, 1.8fr) minmax(0, 1.6fr) 120px;
+    gap: 28px;
+    align-items: baseline;
+  }
+}
+
+/* ─── Asymmetric detail grid ────────────────────────────────── */
+.asym-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 48px;
+}
+@media (min-width: 900px) {
+  .asym-grid {
+    grid-template-columns: minmax(320px, 1.1fr) minmax(320px, 1.5fr);
+    gap: 64px;
+  }
+}
+
+/* ─── Profile head ──────────────────────────────────────────── */
+.profile-head {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 40px;
+}
+@media (min-width: 720px) {
+  .profile-head {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+}
+
+/* ─── Footer grid ───────────────────────────────────────────── */
+.foot-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding-block: 40px;
+  border-top: 1px solid var(--ink);
+  text-align: center;
+}
+@media (min-width: 720px) {
+  .foot-grid {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    text-align: left;
+  }
+}
+
+/* ─── Responsive helpers ────────────────────────────────────── */
+.hide-mobile { display: none; }
+.only-mobile { display: block; }
+.only-desktop { display: none; }
+
+@media (min-width: 720px) {
+  .hide-mobile { display: block; }
+  .hide-mobile.list-row-inner { display: grid; }
+}
+
+@media (min-width: 900px) {
+  .only-mobile { display: none; }
+  .only-desktop { display: block; }
+}
+
+/* ─── Date input ────────────────────────────────────────────── */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.6);
+  cursor: pointer;
+}
