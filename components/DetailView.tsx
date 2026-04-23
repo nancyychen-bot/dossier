@@ -345,9 +345,12 @@ export function DetailView({
             flexWrap: "wrap",
             alignItems: "baseline",
           }}>
-            <TextLink onClick={() => onToggleStatus(nextStatus())} arrow="→">
-              {statusTag === "close" ? "Mark acquaintance" : statusTag === "networking" ? "Mark friend" : "Mark acquaintance"}
-            </TextLink>
+            {statusTag !== "networking" && (
+              <TextLink onClick={() => onToggleStatus("networking")} arrow="→">Mark acquaintance</TextLink>
+            )}
+            {statusTag !== "close" && (
+              <TextLink onClick={() => onToggleStatus("close")} arrow="→">Mark friend</TextLink>
+            )}
             <TextLink onClick={onDelete} arrow="✕" accent>Delete entry</TextLink>
           </div>
         </div>
@@ -360,11 +363,6 @@ export function DetailView({
     </div>
   );
 
-  function nextStatus(): Tag {
-    if (statusTag === "to-enrich") return "networking";
-    if (statusTag === "networking") return "close";
-    return "to-enrich";
-  }
 }
 
 function MeetingEntry({ meeting, index, isFirst, onDelete }: { meeting: Meeting; index: number; isFirst: boolean; onDelete: (() => void) | null }) {
