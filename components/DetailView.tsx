@@ -144,7 +144,7 @@ export function DetailView({
           </h1>
           <div style={{ marginTop: 18, display: "flex", gap: 10, flexWrap: "wrap" }}>
             {statusTag && (
-              <FrameTag accent={statusTag === "to-enrich"}>
+              <FrameTag accent={isIncomplete}>
                 {TAG_META[statusTag].label}
               </FrameTag>
             )}

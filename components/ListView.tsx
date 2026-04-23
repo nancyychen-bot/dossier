@@ -3,7 +3,7 @@ import { useState, useMemo, useCallback } from "react";
 import { Person, Tag, TAG_META } from "@/lib/types";
 import { FrameTag } from "./FrameTag";
 import { FilterChip } from "./FilterChip";
-import { getQuarterLabel, fmtDate } from "@/lib/utils";
+import { getQuarterLabel, fmtDate, isComplete } from "@/lib/utils";
 import { Squiggle } from "./Squiggle";
 
 interface ListViewProps {
@@ -19,7 +19,7 @@ export function ListView({ people, onOpen }: ListViewProps) {
 
   const filtered = useMemo(() => {
     let rows = people;
-    if (filter === "to-enrich") rows = rows.filter(p => !p.enriched || p.tags.includes("to-enrich"));
+    if (filter === "to-enrich") rows = rows.filter(p => !p.enriched && !isComplete(p));
     else if (filter === "networking") rows = rows.filter(p => p.tags.includes("networking"));
     else if (filter === "close") rows = rows.filter(p => p.tags.includes("close"));
     if (query.trim()) {
@@ -33,7 +33,7 @@ export function ListView({ people, onOpen }: ListViewProps) {
 
   const counts = useMemo(() => ({
     all: people.length,
-    "to-enrich": people.filter(p => !p.enriched || p.tags.includes("to-enrich")).length,
+    "to-enrich": people.filter(p => !p.enriched && !isComplete(p)).length,
     networking: people.filter(p => p.tags.includes("networking")).length,
     close: people.filter(p => p.tags.includes("close")).length,
   }), [people]);
@@ -141,7 +141,7 @@ export function ListView({ people, onOpen }: ListViewProps) {
 function PersonRow({ p, onOpen, entryNum }: { p: Person; onOpen: () => void; entryNum: number }) {
   const [hover, setHover] = useState(false);
   const statusTag = p.tags.find(t => ["close", "networking", "to-enrich"].includes(t));
-  const isIncomplete = !p.enriched || p.tags.includes("to-enrich");
+  const isIncomplete = !p.enriched && !isComplete(p);
 
   return (
     <div
@@ -195,7 +195,7 @@ function PersonRow({ p, onOpen, entryNum }: { p: Person; onOpen: () => void; ent
       {/* Col 4 — Status */}
       <div style={{ textAlign: "right", alignSelf: "start" }}>
         {statusTag && (
-          <FrameTag accent={statusTag === "to-enrich"}>
+          <FrameTag accent={isIncomplete}>
             {TAG_META[statusTag].label}
           </FrameTag>
         )}
