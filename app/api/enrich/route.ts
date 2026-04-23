@@ -27,7 +27,11 @@ async function fetchPDL(params: { email?: string | null; phone?: string | null; 
   const qs = new URLSearchParams();
   if (params.email)    qs.set("email", params.email);
   if (params.phone)    qs.set("phone", params.phone);
-  if (params.linkedin) qs.set("profile", params.linkedin);
+  if (params.linkedin) {
+    // PDL expects linkedin.com/in/username — strip protocol and www
+    const normalized = params.linkedin.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
+    qs.set("profile", normalized);
+  }
   if (!qs.toString()) return null;
   try {
     const res = await fetch(
