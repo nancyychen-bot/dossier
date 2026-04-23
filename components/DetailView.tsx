@@ -58,7 +58,7 @@ export function DetailView({
 
   const setField = (k: keyof Person) => (v: string) => setDraft(d => ({ ...d, [k]: v }));
 
-  const saveEdits = async () => {
+  const saveEdits = () => {
     const saved = {
       name:      draft.name.trim() || person.name,
       role:      draft.role,
@@ -75,32 +75,30 @@ export function DetailView({
     };
     onUpdate(saved);
     setEditing(false);
+  };
 
-    // Auto-enrich whenever contact info is present
-    console.log("[enrich] email:", draft.email, "phone:", draft.phone, "linkedin:", draft.linkedin);
-    if (draft.email || draft.phone || draft.linkedin) {
-      setFetchingPhoto(true);
-      try {
-        const qs = new URLSearchParams();
-        if (draft.email)    qs.set("email", draft.email);
-        if (draft.phone)    qs.set("phone", draft.phone);
-        if (draft.linkedin) qs.set("linkedin", draft.linkedin);
-        console.log("[enrich] calling /api/enrich?", qs.toString());
-        const res = await fetch(`/api/enrich?${qs.toString()}`);
-        const data = await res.json();
-        const patch: Partial<Person> = {};
-        if (data.photo)    patch.photo    = data.photo;
-        if (data.role)     patch.role     = data.role;
-        if (data.company)  patch.company  = data.company;
-        if (data.twitter)  patch.twitter  = data.twitter;
-        if (data.linkedin) patch.linkedin = data.linkedin;
-        if (data.web)      patch.web      = data.web;
-        if (data.phone)    patch.phone    = data.phone;
-        if (data.email)    patch.email    = data.email;
-        if (Object.keys(patch).length) onUpdate(patch);
-      } finally {
-        setFetchingPhoto(false);
-      }
+  const runEnrich = async () => {
+    if (!person.email && !person.phone && !person.linkedin) return;
+    setFetchingPhoto(true);
+    try {
+      const qs = new URLSearchParams();
+      if (person.email)    qs.set("email", person.email);
+      if (person.phone)    qs.set("phone", person.phone);
+      if (person.linkedin) qs.set("linkedin", person.linkedin);
+      const res = await fetch(`/api/enrich?${qs.toString()}`);
+      const data = await res.json();
+      const patch: Partial<Person> = {};
+      if (data.photo)    patch.photo    = data.photo;
+      if (data.role)     patch.role     = data.role;
+      if (data.company)  patch.company  = data.company;
+      if (data.twitter)  patch.twitter  = data.twitter;
+      if (data.linkedin) patch.linkedin = data.linkedin;
+      if (data.web)      patch.web      = data.web;
+      if (data.phone)    patch.phone    = data.phone;
+      if (data.email)    patch.email    = data.email;
+      if (Object.keys(patch).length) onUpdate(patch);
+    } finally {
+      setFetchingPhoto(false);
     }
   };
 
@@ -223,19 +221,28 @@ export function DetailView({
                   />
                 </div>
               ))}
-              <div style={{ display: "flex", gap: 20, alignItems: "baseline", padding: "16px 0 4px" }}>
+              <div style={{ padding: "16px 0 4px" }}>
+                <div style={{ display: "flex", gap: 20, alignItems: "baseline", marginBottom: 12 }}>
+                  <button
+                    onClick={saveEdits}
+                    style={{ fontSize: 14, fontWeight: 600, borderBottom: "1px solid var(--ink)", paddingBottom: 2, cursor: "pointer", background: "none", border: "none", color: "var(--ink)" }}
+                  >
+                    Save edits →
+                  </button>
+                  <button
+                    onClick={() => { setDraft(person); setEditing(false); }}
+                    className="muted"
+                    style={{ fontSize: 13, cursor: "pointer", background: "none", border: "none", color: "var(--muted)" }}
+                  >
+                    Discard
+                  </button>
+                </div>
                 <button
-                  onClick={saveEdits}
-                  style={{ fontSize: 14, fontWeight: 600, borderBottom: "1px solid var(--ink)", paddingBottom: 2, cursor: "pointer", background: "none", border: "none", color: "var(--ink)" }}
+                  onClick={runEnrich}
+                  disabled={fetchingPhoto}
+                  style={{ fontSize: 13, fontWeight: 500, borderBottom: "1px solid var(--accent)", paddingBottom: 1, cursor: fetchingPhoto ? "default" : "pointer", background: "none", border: "none", color: "var(--accent)", opacity: fetchingPhoto ? 0.5 : 1 }}
                 >
-                  Save edits →
-                </button>
-                <button
-                  onClick={() => { setDraft(person); setEditing(false); }}
-                  className="muted"
-                  style={{ fontSize: 13, cursor: "pointer", background: "none", border: "none", color: "var(--muted)" }}
-                >
-                  Discard
+                  {fetchingPhoto ? "Enriching…" : "Enrich profile →"}
                 </button>
               </div>
             </div>
