@@ -45,7 +45,7 @@ function fromRichText(richText: any[]): string {
 
 export function notionPageToPerson(page: any): Person {
   const p = page.properties;
-  const status = p.Status?.select?.name ?? "incomplete";
+  const status = (p.Status?.select?.name ?? "incomplete").toLowerCase();
   const tag: Tag = STATUS_TO_TAG[status] ?? "networking";
   const captured = p.Captured?.date?.start ?? page.created_time?.slice(0, 10) ?? "";
   const metWhere = fromRichText(p["Met Where"]?.rich_text ?? []);
