@@ -260,9 +260,15 @@ export function DetailView({
                 {person.email ? <a href={`mailto:${person.email}`} style={{ borderBottom: "1px solid var(--rule)", paddingBottom: 1 }}>{person.email}</a> : null}
               </KV>
               <KV k="Phone" v={person.phone} />
-              <KV k="Twitter" v={person.twitter} />
-              <KV k="LinkedIn" v={person.linkedin} />
-              <KV k="Instagram" v={person.instagram} />
+              <KV k="Twitter">
+                {person.twitter ? <a href={`https://twitter.com/${person.twitter.replace(/^@/, "").replace(/^https?:\/\/(www\.)?(twitter\.com|x\.com)\//, "")}`} target="_blank" rel="noopener noreferrer" style={{ borderBottom: "1px solid var(--rule)", paddingBottom: 1 }}>{person.twitter}</a> : null}
+              </KV>
+              <KV k="LinkedIn">
+                {person.linkedin ? <a href={person.linkedin.startsWith("http") ? person.linkedin : `https://${person.linkedin}`} target="_blank" rel="noopener noreferrer" style={{ borderBottom: "1px solid var(--rule)", paddingBottom: 1 }}>{person.linkedin}</a> : null}
+              </KV>
+              <KV k="Instagram">
+                {person.instagram ? <a href={`https://instagram.com/${person.instagram.replace(/^@/, "").replace(/^https?:\/\/(www\.)?instagram\.com\//, "")}`} target="_blank" rel="noopener noreferrer" style={{ borderBottom: "1px solid var(--rule)", paddingBottom: 1 }}>{person.instagram}</a> : null}
+              </KV>
             </div>
           )}
 
