@@ -60,38 +60,46 @@ export function Portrait({ name, photoUrl, compact = false, onAddPhoto }: Portra
             {initials}
           </div>
 
-          {/* Labels */}
-          <div style={{
-            position: "absolute",
-            bottom: 8,
-            left: 8,
-            fontFamily: '"JetBrains Mono", monospace',
-            fontSize: 7,
-            letterSpacing: "0.08em",
-            color: "var(--muted)",
-            textTransform: "uppercase",
-          }}>
-            No portrait
-          </div>
+          {/* "No portrait" label — only show if there's no add button */}
+          {!onAddPhoto && (
+            <div style={{
+              position: "absolute",
+              bottom: 8,
+              left: 8,
+              fontFamily: '"JetBrains Mono", monospace',
+              fontSize: 7,
+              letterSpacing: "0.08em",
+              color: "var(--muted)",
+              textTransform: "uppercase",
+            }}>
+              No portrait
+            </div>
+          )}
           {onAddPhoto && (
             <button
               onClick={onAddPhoto}
               style={{
                 position: "absolute",
-                bottom: 6,
-                right: 6,
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 4,
                 fontFamily: '"JetBrains Mono", monospace',
-                fontSize: 8,
-                letterSpacing: "0.06em",
+                fontSize: 10,
+                letterSpacing: "0.1em",
                 color: "var(--accent)",
-                borderBottom: "1px solid var(--accent)",
-                paddingBottom: 1,
                 background: "transparent",
                 border: "none",
                 cursor: "pointer",
+                textTransform: "uppercase",
               }}
             >
-              Add →
+              <span style={{ fontSize: 18, lineHeight: 1 }}>+</span>
+              <span>Add photo</span>
             </button>
           )}
         </>

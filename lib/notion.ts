@@ -143,6 +143,7 @@ function personToNotionProps(patch: PersonPatch): object {
 async function notionFetch(path: string, options: RequestInit = {}) {
   const res = await fetch(`https://api.notion.com/v1${path}`, {
     ...options,
+    cache: "no-store",
     headers: { ...baseHeaders, ...(options.headers ?? {}) },
   });
   if (!res.ok) {
