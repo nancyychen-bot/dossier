@@ -76,13 +76,8 @@ export function DetailView({
     onUpdate(saved);
     setEditing(false);
 
-    // Auto-enrich if contact info was added or changed
-    const contactChanged =
-      draft.email    !== person.email    ||
-      draft.phone    !== person.phone    ||
-      draft.linkedin !== person.linkedin;
-
-    if (contactChanged && (draft.email || draft.phone || draft.linkedin)) {
+    // Auto-enrich if contact info present and profile not yet complete
+    if (!isComplete(saved) && (draft.email || draft.phone || draft.linkedin)) {
       setFetchingPhoto(true);
       try {
         const qs = new URLSearchParams();
