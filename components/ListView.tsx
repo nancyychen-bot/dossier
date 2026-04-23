@@ -4,6 +4,7 @@ import { Person, Tag, TAG_META } from "@/lib/types";
 import { FrameTag } from "./FrameTag";
 import { FilterChip } from "./FilterChip";
 import { getQuarterLabel, fmtDate } from "@/lib/utils";
+import { Squiggle } from "./Squiggle";
 
 interface ListViewProps {
   people: Person[];
