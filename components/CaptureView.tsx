@@ -44,8 +44,6 @@ export function CaptureView({ onSave, onSaveAndAdd, onCancel }: CaptureViewProps
     captured: today,
     tags: [form.tagKey],
     enriched: form.tagKey !== "to-enrich",
-    email: null,
-    phone: null,
     web: null,
     twitter: null,
     linkedin: null,
