@@ -8,7 +8,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const { password } = await req.json();
-  if (password !== process.env.DOSSIER_PASSWORD) {
+  if (password?.trim() !== process.env.DOSSIER_PASSWORD?.trim()) {
     return NextResponse.json({ error: "Invalid password" }, { status: 401 });
   }
   const { name, value } = makeSessionCookie();

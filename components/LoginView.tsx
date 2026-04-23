@@ -64,6 +64,9 @@ export function LoginView() {
               placeholder="••••••••"
               autoFocus
               required
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               style={inputStyle}
             />
           </div>
