@@ -58,46 +58,52 @@ export function DetailView({
 
   const setField = (k: keyof Person) => (v: string) => setDraft(d => ({ ...d, [k]: v }));
 
-  const saveEdits = () => {
-    onUpdate({
-      name: draft.name.trim() || person.name,
-      role: draft.role,
-      company: draft.company,
-      email: draft.email,
-      phone: draft.phone,
-      web: draft.web,
-      twitter: draft.twitter,
-      linkedin: draft.linkedin,
+  const saveEdits = async () => {
+    const saved = {
+      name:      draft.name.trim() || person.name,
+      role:      draft.role,
+      company:   draft.company,
+      email:     draft.email,
+      phone:     draft.phone,
+      web:       draft.web,
+      twitter:   draft.twitter,
+      linkedin:  draft.linkedin,
       instagram: draft.instagram,
-      met: draft.met,
-      metCity: draft.metCity,
-      notes: draft.notes,
-    });
+      met:       draft.met,
+      metCity:   draft.metCity,
+      notes:     draft.notes,
+    };
+    onUpdate(saved);
     setEditing(false);
-  };
 
-  const fetchFromClearbit = async () => {
-    if ((!person.email && !person.phone && !person.linkedin) || fetchingPhoto) return;
-    setFetchingPhoto(true);
-    try {
-      const qs = new URLSearchParams();
-      if (person.email)    qs.set("email", person.email);
-      if (person.phone)    qs.set("phone", person.phone);
-      if (person.linkedin) qs.set("linkedin", person.linkedin);
-      const res = await fetch(`/api/enrich?${qs.toString()}`);
-      const data = await res.json();
-      const patch: Partial<Person> = {};
-      if (data.photo)                        patch.photo    = data.photo;
-      if (data.role     && !person.role)     patch.role     = data.role;
-      if (data.company  && !person.company)  patch.company  = data.company;
-      if (data.twitter  && !person.twitter)  patch.twitter  = data.twitter;
-      if (data.linkedin && !person.linkedin) patch.linkedin = data.linkedin;
-      if (data.web      && !person.web)      patch.web      = data.web;
-      if (data.phone    && !person.phone)    patch.phone    = data.phone;
-      if (data.email    && !person.email)    patch.email    = data.email;
-      if (Object.keys(patch).length) onUpdate(patch);
-    } finally {
-      setFetchingPhoto(false);
+    // Auto-enrich if contact info was added or changed
+    const contactChanged =
+      draft.email    !== person.email    ||
+      draft.phone    !== person.phone    ||
+      draft.linkedin !== person.linkedin;
+
+    if (contactChanged && (draft.email || draft.phone || draft.linkedin)) {
+      setFetchingPhoto(true);
+      try {
+        const qs = new URLSearchParams();
+        if (draft.email)    qs.set("email", draft.email);
+        if (draft.phone)    qs.set("phone", draft.phone);
+        if (draft.linkedin) qs.set("linkedin", draft.linkedin);
+        const res = await fetch(`/api/enrich?${qs.toString()}`);
+        const data = await res.json();
+        const patch: Partial<Person> = {};
+        if (data.photo)                       patch.photo    = data.photo;
+        if (data.role    && !saved.role)      patch.role     = data.role;
+        if (data.company && !saved.company)   patch.company  = data.company;
+        if (data.twitter && !saved.twitter)   patch.twitter  = data.twitter;
+        if (data.linkedin && !saved.linkedin) patch.linkedin = data.linkedin;
+        if (data.web     && !saved.web)       patch.web      = data.web;
+        if (data.phone   && !saved.phone)     patch.phone    = data.phone;
+        if (data.email   && !saved.email)     patch.email    = data.email;
+        if (Object.keys(patch).length) onUpdate(patch);
+      } finally {
+        setFetchingPhoto(false);
+      }
     }
   };
 
@@ -150,18 +156,8 @@ export function DetailView({
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
           <div className="uc muted" style={{ fontSize: 10 }}>§ Portrait</div>
           <Portrait name={person.name} photoUrl={person.photo ?? null} compact />
-          {(person.email || person.phone || person.linkedin) && (
-            <button
-              onClick={fetchFromClearbit}
-              disabled={fetchingPhoto}
-              className="mono"
-              style={{ fontSize: 9, letterSpacing: "0.06em", color: "var(--accent)", borderBottom: "1px solid var(--accent)", paddingBottom: 1, background: "transparent", border: "none", cursor: fetchingPhoto ? "default" : "pointer", opacity: fetchingPhoto ? 0.5 : 1 }}
-            >
-              {fetchingPhoto ? "FETCHING…" : "ENRICH PROFILE →"}
-            </button>
-          )}
-          {!person.email && !person.phone && !person.linkedin && (
-            <div className="mono muted" style={{ fontSize: 9, letterSpacing: "0.08em" }}>ADD EMAIL, PHONE, OR LINKEDIN</div>
+          {fetchingPhoto && (
+            <div className="mono muted" style={{ fontSize: 9, letterSpacing: "0.08em" }}>ENRICHING…</div>
           )}
         </div>
       </div>
