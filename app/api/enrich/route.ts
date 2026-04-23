@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
   const email    = req.nextUrl.searchParams.get("email");
   const phone    = req.nextUrl.searchParams.get("phone");
   const linkedin = req.nextUrl.searchParams.get("linkedin");
+  console.log("[enrich] hit — email:", email, "phone:", phone, "linkedin:", linkedin, "pdl key set:", !!process.env.PDL_API_KEY);
   if (!email && !phone && !linkedin) return NextResponse.json({ error: "email, phone, or linkedin required" }, { status: 400 });
 
   const [clearbit, pdl] = await Promise.all([
