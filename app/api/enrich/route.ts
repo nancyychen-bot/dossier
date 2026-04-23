@@ -34,12 +34,11 @@ async function fetchPDL(params: { email?: string | null; phone?: string | null; 
   }
   if (!qs.toString()) return null;
   try {
-    const res = await fetch(
-      `https://api.peopledatalabs.com/v5/person/enrich?${qs.toString()}`,
-      { headers: { "X-Api-Key": key } }
-    );
-    if (!res.ok) return null;
+    const url = `https://api.peopledatalabs.com/v5/person/enrich?${qs.toString()}`;
+    const res = await fetch(url, { headers: { "X-Api-Key": key } });
     const d = await res.json();
+    console.log("[PDL]", res.status, JSON.stringify(d).slice(0, 300));
+    if (!res.ok) return null;
     const person = d.data;
     if (!person) return null;
     return {
