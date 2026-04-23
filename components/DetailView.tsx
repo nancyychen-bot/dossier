@@ -252,6 +252,7 @@ export function DetailView({
               <KV k="Email">
                 {person.email ? <a href={`mailto:${person.email}`} style={{ borderBottom: "1px solid var(--rule)", paddingBottom: 1 }}>{person.email}</a> : null}
               </KV>
+              <KV k="Phone" v={person.phone} />
               <KV k="Twitter" v={person.twitter} />
               <KV k="LinkedIn" v={person.linkedin} />
               <KV k="Instagram" v={person.instagram} />

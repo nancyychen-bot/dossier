@@ -17,6 +17,7 @@ const INITIAL_FORM = {
   company: "",
   email: "",
   phone: "",
+  linkedin: "",
   met: "",
   metCity: "",
   notes: "",
@@ -38,6 +39,7 @@ export function CaptureView({ onSave, onSaveAndAdd, onCancel }: CaptureViewProps
     company: form.company.trim() || "—",
     email: form.email.trim() || null,
     phone: form.phone.trim() || null,
+    linkedin: form.linkedin.trim() || null,
     met: form.met.trim(),
     metCity: form.metCity.trim(),
     notes: form.notes.trim(),
@@ -46,7 +48,6 @@ export function CaptureView({ onSave, onSaveAndAdd, onCancel }: CaptureViewProps
     enriched: form.tagKey !== "to-enrich",
     web: null,
     twitter: null,
-    linkedin: null,
     instagram: null,
     followups: [],
   });
@@ -124,6 +125,11 @@ export function CaptureView({ onSave, onSaveAndAdd, onCancel }: CaptureViewProps
             <UnderlinedInput value={form.phone} onChange={update("phone")} placeholder="+1 212 555 0100" type="tel" />
           </Field>
         </div>
+
+        {/* LinkedIn */}
+        <Field label="LinkedIn">
+          <UnderlinedInput value={form.linkedin} onChange={update("linkedin")} placeholder="linkedin.com/in/username" />
+        </Field>
 
         {/* Met where + City */}
         <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 28 }}>
