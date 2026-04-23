@@ -82,7 +82,7 @@ export function notionPageToPerson(page: any): Person {
     captured,
     tags: [tag],
     enriched: tag !== "to-enrich" || !!(name && role && email && linkedin),
-    photo: null,
+    photo: p.Photo?.url ?? null,
     email,
     phone: p.Phone?.phone_number ?? null,
     web: fromRichText(p.Website?.rich_text ?? []) || null,
@@ -126,6 +126,8 @@ function personToNotionProps(patch: PersonPatch): object {
     props.Instagram = { url: patch.instagram || null };
   if (patch.tags !== undefined)
     props.Status = { select: { name: TAG_TO_STATUS[patch.tags[0]] ?? "incomplete" } };
+  if (patch.photo !== undefined)
+    props.Photo = { url: patch.photo || null };
   if (patch.captured !== undefined)
     props.Captured = { date: { start: patch.captured } };
   if (patch.meetings !== undefined)

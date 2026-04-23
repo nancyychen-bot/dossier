@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Person, Meeting, Tag, TAG_META } from "@/lib/types";
 import { FrameTag } from "./FrameTag";
 import { TextLink } from "./TextLink";
@@ -36,6 +36,8 @@ export function DetailView({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(person);
   const [fetchingPhoto, setFetchingPhoto] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setDraft(person);
@@ -68,12 +70,29 @@ export function DetailView({
       twitter:   draft.twitter,
       linkedin:  draft.linkedin,
       instagram: draft.instagram,
+      photo:     draft.photo,
       met:       draft.met,
       metCity:   normalizeCity(draft.metCity || ""),
       notes:     draft.notes,
     };
     onUpdate(saved);
     setEditing(false);
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/upload-photo", { method: "POST", body: form });
+      const { url } = await res.json();
+      if (url) onUpdate({ photo: url });
+    } finally {
+      setUploadingPhoto(false);
+      e.target.value = "";
+    }
   };
 
   const runEnrich = async () => {
@@ -147,9 +166,32 @@ export function DetailView({
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
           <div className="uc muted" style={{ fontSize: 10 }}>§ Portrait</div>
-          <Portrait name={person.name} photoUrl={person.photo ?? null} compact />
-          {fetchingPhoto && (
-            <div className="mono muted" style={{ fontSize: 9, letterSpacing: "0.08em" }}>ENRICHING…</div>
+          <Portrait
+            name={person.name}
+            photoUrl={person.photo ?? null}
+            compact
+            onAddPhoto={() => fileInputRef.current?.click()}
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={handlePhotoUpload}
+          />
+          {(fetchingPhoto || uploadingPhoto) && (
+            <div className="mono muted" style={{ fontSize: 9, letterSpacing: "0.08em" }}>
+              {uploadingPhoto ? "UPLOADING…" : "ENRICHING…"}
+            </div>
+          )}
+          {person.photo && (
+            <button
+              onClick={() => onUpdate({ photo: null })}
+              className="muted"
+              style={{ fontSize: 9, letterSpacing: "0.06em", cursor: "pointer", background: "none", border: "none", color: "var(--muted)", fontFamily: '"JetBrains Mono", monospace' }}
+            >
+              remove photo
+            </button>
           )}
         </div>
       </div>
@@ -191,6 +233,7 @@ export function DetailView({
                 { k: "Twitter", field: "twitter" as keyof Person },
                 { k: "LinkedIn", field: "linkedin" as keyof Person },
                 { k: "Instagram", field: "instagram" as keyof Person },
+                { k: "Photo URL", field: "photo" as keyof Person },
               ].map(({ k, field, type }) => (
                 <div key={field} style={{
                   display: "grid",
