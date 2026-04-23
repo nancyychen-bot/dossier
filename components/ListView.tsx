@@ -194,7 +194,7 @@ function PersonRow({ p, onOpen, entryNum }: { p: Person; onOpen: () => void; ent
 
       {/* Col 4 — Status */}
       <div style={{ textAlign: "right", alignSelf: "start" }}>
-        {statusTag && (
+        {statusTag && (statusTag !== "to-enrich" || isIncomplete) && (
           <FrameTag accent={isIncomplete}>
             {TAG_META[statusTag].label}
           </FrameTag>
