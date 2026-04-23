@@ -77,6 +77,7 @@ export function DetailView({
     setEditing(false);
 
     // Auto-enrich whenever contact info is present
+    console.log("[enrich] email:", draft.email, "phone:", draft.phone, "linkedin:", draft.linkedin);
     if (draft.email || draft.phone || draft.linkedin) {
       setFetchingPhoto(true);
       try {
@@ -84,6 +85,7 @@ export function DetailView({
         if (draft.email)    qs.set("email", draft.email);
         if (draft.phone)    qs.set("phone", draft.phone);
         if (draft.linkedin) qs.set("linkedin", draft.linkedin);
+        console.log("[enrich] calling /api/enrich?", qs.toString());
         const res = await fetch(`/api/enrich?${qs.toString()}`);
         const data = await res.json();
         const patch: Partial<Person> = {};
