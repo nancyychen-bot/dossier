@@ -106,14 +106,14 @@ export function DetailView({
       const res = await fetch(`/api/enrich?${qs.toString()}`);
       const data = await res.json();
       const patch: Partial<Person> = {};
-      if (data.photo)    patch.photo    = data.photo;
-      if (data.role)     patch.role     = data.role;
-      if (data.company)  patch.company  = data.company;
-      if (data.twitter)  patch.twitter  = data.twitter;
-      if (data.linkedin) patch.linkedin = data.linkedin;
-      if (data.web)      patch.web      = data.web;
-      if (data.phone)    patch.phone    = data.phone;
-      if (data.email)    patch.email    = data.email;
+      if (data.photo    && !person.photo)                              patch.photo    = data.photo;
+      if (data.role     && !person.role)                               patch.role     = data.role;
+      if (data.company  && (!person.company || person.company === "—")) patch.company  = data.company;
+      if (data.twitter  && !person.twitter)                            patch.twitter  = data.twitter;
+      if (data.linkedin && !person.linkedin)                           patch.linkedin = data.linkedin;
+      if (data.web      && !person.web)                                patch.web      = data.web;
+      if (data.phone    && !person.phone)                              patch.phone    = data.phone;
+      if (data.email    && !person.email)                              patch.email    = data.email;
       if (Object.keys(patch).length) onUpdate(patch);
     } finally {
       setFetchingPhoto(false);
