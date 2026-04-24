@@ -59,24 +59,13 @@ export function DetailView({
 
   const setField = (k: keyof Person) => (v: string) => setDraft(d => ({ ...d, [k]: v }));
 
-  const saveEdits = () => {
-    const saved = {
-      name:      draft.name.trim() || person.name,
-      role:      draft.role,
-      company:   draft.company,
-      email:     draft.email,
-      phone:     draft.phone,
-      web:       draft.web,
-      twitter:   draft.twitter,
-      linkedin:  draft.linkedin,
-      instagram: draft.instagram,
-      photo:     draft.photo,
-      met:       draft.met,
-      metCity:   normalizeCity(draft.metCity || ""),
-      notes:     draft.notes,
-    };
-    onUpdate(saved);
-    setEditing(false);
+  const saveField = (field: keyof Person) => {
+    const value = draft[field] as string;
+    const normalized =
+      field === "name"    ? (value.trim() || person.name) :
+      field === "metCity" ? normalizeCity(value || "") :
+      value;
+    onUpdate({ [field]: normalized });
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -248,6 +237,7 @@ export function DetailView({
                     type={type || "text"}
                     value={(draft[field] as string) ?? ""}
                     onChange={e => setField(field)(e.target.value)}
+                    onBlur={() => saveField(field)}
                     style={{
                       width: "100%",
                       background: "transparent",
@@ -263,22 +253,13 @@ export function DetailView({
                   />
                 </div>
               ))}
-              <div style={{ padding: "16px 0 4px" }}>
-                <div style={{ display: "flex", gap: 20, alignItems: "baseline", marginBottom: 12 }}>
-                  <button
-                    onClick={saveEdits}
-                    style={{ fontSize: 14, fontWeight: 600, borderBottom: "1px solid var(--ink)", paddingBottom: 2, cursor: "pointer", background: "none", border: "none", color: "var(--ink)" }}
-                  >
-                    Save edits →
-                  </button>
-                  <button
-                    onClick={() => { setDraft(person); setEditing(false); }}
-                    className="muted"
-                    style={{ fontSize: 13, cursor: "pointer", background: "none", border: "none", color: "var(--muted)" }}
-                  >
-                    Discard
-                  </button>
-                </div>
+              <div style={{ padding: "16px 0 4px", display: "flex", gap: 20, alignItems: "baseline" }}>
+                <button
+                  onClick={() => setEditing(false)}
+                  style={{ fontSize: 14, fontWeight: 600, borderBottom: "1px solid var(--ink)", paddingBottom: 2, cursor: "pointer", background: "none", border: "none", color: "var(--ink)" }}
+                >
+                  ← Done editing
+                </button>
                 <button
                   onClick={runEnrich}
                   disabled={fetchingPhoto}
