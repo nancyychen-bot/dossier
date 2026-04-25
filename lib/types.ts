@@ -12,7 +12,7 @@ export interface Person {
   name: string;
   role: string;
   company: string;
-  met: string;             // first-meeting location (legacy field)
+  location: string;        // first-meeting location
   metCity: string;         // first-meeting city (legacy field)
   captured: string;        // first-meeting date
   tags: Tag[];

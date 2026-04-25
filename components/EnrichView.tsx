@@ -72,7 +72,7 @@ function EnrichRow({ person, onOpen }: { person: Person; onOpen: () => void }) {
           )}
         </div>
         <div className="ital muted" style={{ fontSize: 13, marginBottom: 6 }}>
-          Met at {person.met}{person.metCity ? ` · ${person.metCity}` : ""}{metDate ? ` · ${metDate}` : ""}
+          Met at {person.location}{person.metCity ? ` · ${person.metCity}` : ""}{metDate ? ` · ${metDate}` : ""}
         </div>
         <div style={{ fontSize: 13, display: "flex", gap: 14, flexWrap: "wrap" }}>
           {!person.linkedin && <span className="muted">✕ no linkedin</span>}

@@ -88,7 +88,7 @@ export function DossierProvider({ children }: { children: React.ReactNode }) {
     const meeting: Meeting = {
       id: crypto.randomUUID(),
       date: payload.captured || today,
-      location: [payload.met, payload.metCity].filter(Boolean).join(" · "),
+      location: [payload.location, payload.metCity].filter(Boolean).join(" · "),
       notes: payload.notes || "",
     };
     const newPerson: Person = { ...payload, id: tempId, meetings: [meeting] };

@@ -3,6 +3,7 @@ import { useState, useMemo, useCallback } from "react";
 import { Person, Tag, TAG_META } from "@/lib/types";
 import { FrameTag } from "./FrameTag";
 import { FilterChip } from "./FilterChip";
+import { VoiceSearchModal } from "./VoiceSearchModal";
 import { getQuarterLabel, fmtDate } from "@/lib/utils";
 import { Squiggle } from "./Squiggle";
 
@@ -13,11 +14,56 @@ interface ListViewProps {
 
 type Filter = "all" | "networking" | "close" | "influential";
 
+type AiResult = { id: string; reason: string };
+
 export function ListView({ people, onOpen }: ListViewProps) {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
+  const [aiResults, setAiResults] = useState<AiResult[] | null>(null);
+  const [aiSearching, setAiSearching] = useState(false);
+  const [showVoiceSearch, setShowVoiceSearch] = useState(false);
+
+  const runAiSearch = useCallback(async (q: string) => {
+    if (!q.trim()) return;
+    setAiSearching(true);
+    setAiResults(null);
+    try {
+      const res = await fetch("/api/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ query: q, people }),
+      });
+      const data = await res.json();
+      setAiResults(data.results ?? []);
+    } catch {
+      setAiResults([]);
+    } finally {
+      setAiSearching(false);
+    }
+  }, [people]);
+
+  const clearAiSearch = useCallback(() => {
+    setAiResults(null);
+    setAiSearching(false);
+  }, []);
+
+  const handleVoiceResult = useCallback((transcript: string) => {
+    setQuery(transcript);
+    runAiSearch(transcript);
+  }, [runAiSearch]);
+
+  const aiReasonMap = useMemo(() => {
+    if (!aiResults) return {} as Record<string, string>;
+    return Object.fromEntries(aiResults.map(r => [r.id, r.reason]));
+  }, [aiResults]);
 
   const filtered = useMemo(() => {
+    if (aiResults !== null) {
+      return aiResults
+        .map(r => people.find(p => p.id === r.id))
+        .filter((p): p is Person => p !== undefined);
+    }
     let rows = people;
     if (filter === "networking") rows = rows.filter(p => p.tags.includes("networking") || p.tags.includes("to-enrich"));
     else if (filter === "close") rows = rows.filter(p => p.tags.includes("close"));
@@ -26,11 +72,11 @@ export function ListView({ people, onOpen }: ListViewProps) {
       const q = query.trim().toLowerCase();
       rows = rows.filter(p => {
         const meetingText = (p.meetings || []).map(m => (m.notes || "") + " " + (m.location || "")).join(" ");
-        return (p.name + " " + p.role + " " + p.company + " " + p.met + " " + (p.notes || "") + " " + meetingText).toLowerCase().includes(q);
+        return (p.name + " " + p.role + " " + p.company + " " + p.location + " " + (p.notes || "") + " " + meetingText).toLowerCase().includes(q);
       });
     }
     return rows;
-  }, [people, filter, query]);
+  }, [people, filter, query, aiResults]);
 
   const counts = useMemo(() => ({
     all: people.length,
@@ -75,13 +121,42 @@ export function ListView({ people, onOpen }: ListViewProps) {
           <span className="uc muted" style={{ fontSize: 10, whiteSpace: "nowrap" }}>Search ⌕</span>
           <input
             value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="name, role, place…"
+            onChange={e => { setQuery(e.target.value); clearAiSearch(); }}
+            onKeyDown={e => { if (e.key === "Enter" && query.trim()) runAiSearch(query); }}
+            placeholder="name, role, place… or press Enter to ask a question"
             style={{ fontSize: 16, padding: "4px 0", flex: 1, background: "transparent", border: "none", outline: "none", color: "var(--ink)", fontFamily: "inherit" }}
           />
-          {query && (
-            <button onClick={() => setQuery("")} className="mono" style={{ fontSize: 11, color: "var(--muted)", cursor: "pointer", background: "none", border: "none" }}>✕</button>
+          {aiSearching && (
+            <span className="mono muted" style={{ fontSize: 9, letterSpacing: "0.1em", whiteSpace: "nowrap" }}>SEARCHING…</span>
           )}
+          {aiResults !== null && !aiSearching && (
+            <span
+              className="mono"
+              style={{ fontSize: 9, letterSpacing: "0.1em", color: "var(--accent)", border: "1px solid var(--accent)", padding: "2px 6px", whiteSpace: "nowrap" }}
+            >
+              AI
+            </span>
+          )}
+          {query && (
+            <button
+              onClick={() => { setQuery(""); clearAiSearch(); }}
+              className="mono"
+              style={{ fontSize: 11, color: "var(--muted)", cursor: "pointer", background: "none", border: "none" }}
+            >✕</button>
+          )}
+          {/* Voice search icon */}
+          <button
+            onClick={() => setShowVoiceSearch(true)}
+            title="Voice search"
+            style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 0", color: "var(--muted)", display: "flex", alignItems: "center" }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="9" y="2" width="6" height="12" rx="3"/>
+              <path d="M5 10a7 7 0 0 0 14 0"/>
+              <line x1="12" y1="19" x2="12" y2="22"/>
+              <line x1="9" y1="22" x2="15" y2="22"/>
+            </svg>
+          </button>
         </div>
         {/* Filters + count */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 12 }}>
@@ -123,10 +198,16 @@ export function ListView({ people, onOpen }: ListViewProps) {
 
       {/* Rows */}
       {filtered.length === 0 ? (
-        <EmptyList query={query} filter={filter} />
+        <EmptyList query={query} filter={filter} aiMode={aiResults !== null} aiSearching={aiSearching} />
       ) : (
         filtered.map((p) => (
-          <PersonRow key={p.id} p={p} onOpen={() => onOpen(p.id)} entryNum={people.indexOf(p) + 1} />
+          <PersonRow
+            key={p.id}
+            p={p}
+            onOpen={() => onOpen(p.id)}
+            entryNum={people.indexOf(p) + 1}
+            aiReason={aiReasonMap[p.id]}
+          />
         ))
       )}
 
@@ -136,11 +217,18 @@ export function ListView({ people, onOpen }: ListViewProps) {
         <div style={{ fontSize: 14 }}>✐</div>
         <div className="mono" style={{ fontSize: 11 }}>↩ end of dossier</div>
       </div>
+
+      {showVoiceSearch && (
+        <VoiceSearchModal
+          onResult={handleVoiceResult}
+          onClose={() => setShowVoiceSearch(false)}
+        />
+      )}
     </div>
   );
 }
 
-function PersonRow({ p, onOpen, entryNum }: { p: Person; onOpen: () => void; entryNum: number }) {
+function PersonRow({ p, onOpen, entryNum, aiReason }: { p: Person; onOpen: () => void; entryNum: number; aiReason?: string }) {
   const [hover, setHover] = useState(false);
   const statusTag = p.tags.find(t => ["close", "networking", "to-enrich", "influential"].includes(t));
 
@@ -162,7 +250,7 @@ function PersonRow({ p, onOpen, entryNum }: { p: Person; onOpen: () => void; ent
       onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
     >
       {/* Col 1 — Name stack */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 10, minWidth: 0, flexWrap: "wrap" }}>
           <span className="mono" style={{ fontSize: 10, color: "var(--muted)", flexShrink: 0 }}>
             {String(entryNum).padStart(3, "0")}
@@ -178,6 +266,11 @@ function PersonRow({ p, onOpen, entryNum }: { p: Person; onOpen: () => void; ent
             {p.name}
           </span>
         </div>
+        {aiReason && (
+          <div className="mono muted" style={{ fontSize: 9, letterSpacing: "0.06em", paddingLeft: 32 }}>
+            {aiReason}
+          </div>
+        )}
       </div>
 
       {/* Col 2 — Role · Company (desktop) */}
@@ -188,7 +281,7 @@ function PersonRow({ p, onOpen, entryNum }: { p: Person; onOpen: () => void; ent
 
       {/* Col 3 — Met at (desktop) */}
       <div className="hide-mobile ital muted" style={{ fontSize: 13, minWidth: 0, overflowWrap: "break-word", lineHeight: 1.35 }}>
-        {p.met}
+        {p.location}
       </div>
 
       {/* Col 4 — Location (desktop) */}
@@ -208,8 +301,12 @@ function PersonRow({ p, onOpen, entryNum }: { p: Person; onOpen: () => void; ent
   );
 }
 
-function EmptyList({ query, filter }: { query: string; filter: Filter }) {
-  const line = query
+function EmptyList({ query, filter, aiMode, aiSearching }: { query: string; filter: Filter; aiMode: boolean; aiSearching: boolean }) {
+  const line = aiSearching
+    ? "Searching…"
+    : aiMode
+    ? `No one matched "${query}". Try rephrasing your question.`
+    : query
     ? `Nothing matches "${query}". Try a shorter word, or check the spelling.`
     : filter === "close"
     ? "No friends yet. That's honest. Keep going."

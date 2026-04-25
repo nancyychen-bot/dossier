@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAuthenticated } from "@/lib/auth";
 
 async function fetchClearbit(email: string) {
   const key = process.env.CLEARBIT_API_KEY;
@@ -37,7 +38,6 @@ async function fetchPDL(params: { email?: string | null; phone?: string | null; 
     const url = `https://api.peopledatalabs.com/v5/person/enrich?${qs.toString()}`;
     const res = await fetch(url, { headers: { "X-Api-Key": key } });
     const d = await res.json();
-    console.log("[PDL]", res.status, JSON.stringify(d).slice(0, 300));
     if (!res.ok) return null;
     const person = d.data;
     if (!person) return null;
@@ -53,10 +53,11 @@ async function fetchPDL(params: { email?: string | null; phone?: string | null; 
 }
 
 export async function GET(req: NextRequest) {
+  if (!isAuthenticated()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const email    = req.nextUrl.searchParams.get("email");
   const phone    = req.nextUrl.searchParams.get("phone");
   const linkedin = req.nextUrl.searchParams.get("linkedin");
-  console.log("[enrich] hit — email:", email, "phone:", phone, "linkedin:", linkedin, "pdl key set:", !!process.env.PDL_API_KEY);
   if (!email && !phone && !linkedin) return NextResponse.json({ error: "email, phone, or linkedin required" }, { status: 400 });
 
   const [clearbit, pdl] = await Promise.all([

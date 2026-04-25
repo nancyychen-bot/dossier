@@ -77,7 +77,7 @@ export function notionPageToPerson(page: any): Person {
     name,
     role,
     company: fromRichText(p.Company?.rich_text ?? []) || "—",
-    met: metWhere,
+    location: metWhere,
     metCity: city,
     captured,
     tags: [tag],
@@ -106,8 +106,8 @@ function personToNotionProps(patch: PersonPatch): object {
     props.Role = { rich_text: toRichText(patch.role || "") };
   if (patch.company !== undefined)
     props.Company = { rich_text: toRichText(patch.company && patch.company !== "—" ? patch.company : "") };
-  if (patch.met !== undefined)
-    props["Met Where"] = { rich_text: toRichText(patch.met || "") };
+  if (patch.location !== undefined)
+    props["Met Where"] = { rich_text: toRichText(patch.location || "") };
   if (patch.metCity !== undefined)
     props.Location = { select: patch.metCity ? { name: patch.metCity } : null };
   if (patch.notes !== undefined)

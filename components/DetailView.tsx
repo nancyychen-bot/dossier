@@ -6,6 +6,7 @@ import { TextLink } from "./TextLink";
 import { UnderlinedInput } from "./UnderlinedInput";
 import { KV } from "./KV";
 import { Portrait } from "./Portrait";
+import { DraftEmailModal } from "./DraftEmailModal";
 import { fmtDate, fmtDateLong, daysAgo, mkMeetingId, normalizeCity } from "@/lib/utils";
 
 interface DetailViewProps {
@@ -37,6 +38,7 @@ export function DetailView({
   const [draft, setDraft] = useState(person);
   const [fetchingPhoto, setFetchingPhoto] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [showDraftEmail, setShowDraftEmail] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export function DetailView({
     : [{
         id: "m-seed",
         date: person.captured,
-        location: [person.met, person.metCity].filter(Boolean).join(" · "),
+        location: [person.location, person.metCity].filter(Boolean).join(" · "),
         notes: person.notes || "",
       }];
 
@@ -215,7 +217,7 @@ export function DetailView({
                 { k: "Name", field: "name" as keyof Person, type: "text" },
                 { k: "Role", field: "role" as keyof Person },
                 { k: "Company", field: "company" as keyof Person },
-                { k: "Met at", field: "met" as keyof Person },
+                { k: "Met at", field: "location" as keyof Person },
                 { k: "Location", field: "metCity" as keyof Person },
                 { k: "Email", field: "email" as keyof Person, type: "email" },
                 { k: "Phone", field: "phone" as keyof Person, type: "tel" },
@@ -273,7 +275,7 @@ export function DetailView({
             <div style={{ borderTop: "1px solid var(--ink)" }}>
               <KV k="Role" v={person.role} />
               <KV k="Company" v={person.company && person.company !== "—" ? person.company : null} />
-              <KV k="Met" v={person.met} />
+              <KV k="Met" v={person.location} />
               <KV k="Location" v={person.metCity} />
               <KV k="Captured">
                 <span>{fmtDateLong(person.captured)}</span>
@@ -374,6 +376,7 @@ export function DetailView({
             flexWrap: "wrap",
             alignItems: "baseline",
           }}>
+            <TextLink onClick={() => setShowDraftEmail(true)} arrow="→">Draft email</TextLink>
             {statusTag !== "networking" && (
               <TextLink onClick={() => onToggleStatus("networking")} arrow="→">Mark acquaintance</TextLink>
             )}
@@ -392,6 +395,10 @@ export function DetailView({
       <div style={{ display: "flex", justifyContent: "center", paddingTop: 72, color: "var(--muted)" }}>
         <div style={{ fontSize: 18 }}>• • •</div>
       </div>
+
+      {showDraftEmail && (
+        <DraftEmailModal person={person} onClose={() => setShowDraftEmail(false)} />
+      )}
     </div>
   );
 

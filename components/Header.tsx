@@ -4,7 +4,11 @@ import { Squiggle } from "./Squiggle";
 import { useDossier } from "@/lib/store";
 import { getTodayFormatted } from "@/lib/utils";
 
-export function Header() {
+interface HeaderProps {
+  onVoiceCapture?: () => void;
+}
+
+export function Header({ onVoiceCapture }: HeaderProps) {
   const { route, goto, signOut } = useDossier();
 
   return (
@@ -19,7 +23,9 @@ export function Header() {
         <nav className="hdr-nav">
           <NavLink label="Dossier" active={route.name === "list"} onClick={() => goto("list")} />
           <NavLink label="Capture" active={route.name === "capture"} onClick={() => goto("capture")} />
-          <NavLink label="Enrich" active={route.name === "enrich"} onClick={() => goto("enrich")} />
+          {onVoiceCapture && (
+            <NavLink label="Voice" active={false} onClick={onVoiceCapture} />
+          )}
         </nav>
         <div style={{ display: "flex", alignItems: "baseline", gap: 14, whiteSpace: "nowrap", justifyContent: "flex-end" }}>
           <span className="mono muted" style={{ fontSize: 10 }}>{getTodayFormatted()}</span>

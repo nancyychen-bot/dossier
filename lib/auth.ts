@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { createHmac } from "crypto";
 
 function sessionToken() {
-  const secret = process.env.DOSSIER_SECRET ?? "dossier-secret";
+  const secret = process.env.DOSSIER_SECRET ?? "";
   const password = process.env.DOSSIER_PASSWORD ?? "";
   return createHmac("sha256", secret).update(password).digest("hex");
 }

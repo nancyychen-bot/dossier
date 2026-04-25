@@ -4,7 +4,7 @@ import { Person, Tag, TAG_META } from "@/lib/types";
 import { FilterChip } from "./FilterChip";
 import { TextLink } from "./TextLink";
 import { UnderlinedInput } from "./UnderlinedInput";
-import { normalizeCity } from "@/lib/utils";
+import { createPersonPayload } from "@/lib/person";
 
 interface CaptureViewProps {
   onSave: (payload: Omit<Person, "id" | "meetings">) => string;
@@ -19,7 +19,7 @@ const INITIAL_FORM = {
   email: "",
   phone: "",
   linkedin: "",
-  met: "",
+  location: "",
   metCity: "",
   notes: "",
   tagKey: "to-enrich" as Tag,
@@ -29,28 +29,21 @@ export function CaptureView({ onSave, onSaveAndAdd, onCancel }: CaptureViewProps
   const [form, setForm] = useState(INITIAL_FORM);
   const [saved, setSaved] = useState(false);
   const canSave = form.name.trim().length > 0;
-  const today = new Date().toISOString().slice(0, 10);
 
   const update = (k: keyof typeof INITIAL_FORM) => (v: string) =>
     setForm(f => ({ ...f, [k]: v }));
 
-  const buildPayload = (): Omit<Person, "id" | "meetings"> => ({
-    name: form.name.trim(),
-    role: form.role.trim(),
-    company: form.company.trim() || "—",
-    email: form.email.trim() || null,
-    phone: form.phone.trim() || null,
-    linkedin: form.linkedin.trim() || null,
-    met: form.met.trim(),
-    metCity: normalizeCity(form.metCity),
-    notes: form.notes.trim(),
-    captured: today,
-    tags: [form.tagKey],
-    enriched: form.tagKey !== "to-enrich" && form.tagKey !== "networking",
-    web: null,
-    twitter: null,
-    instagram: null,
-    followups: [],
+  const buildPayload = () => createPersonPayload({
+    name: form.name,
+    role: form.role,
+    company: form.company,
+    email: form.email,
+    phone: form.phone,
+    linkedin: form.linkedin,
+    location: form.location,
+    metCity: form.metCity,
+    notes: form.notes,
+    tag: form.tagKey,
   });
 
   const handleSave = () => {
@@ -135,7 +128,7 @@ export function CaptureView({ onSave, onSaveAndAdd, onCancel }: CaptureViewProps
         {/* Met where + City */}
         <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 28 }}>
           <Field label="Met where">
-            <UnderlinedInput value={form.met} onChange={update("met")} placeholder="The event, the hallway, the dinner" />
+            <UnderlinedInput value={form.location} onChange={update("location")} placeholder="The event, the hallway, the dinner" />
           </Field>
           <Field label="City">
             <UnderlinedInput value={form.metCity} onChange={update("metCity")} placeholder="Brooklyn, The Hague…" />

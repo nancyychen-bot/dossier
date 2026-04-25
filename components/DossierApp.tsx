@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import { useDossier } from "@/lib/store";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
@@ -7,6 +8,7 @@ import { ListView } from "./ListView";
 import { DetailView } from "./DetailView";
 import { CaptureView } from "./CaptureView";
 import { EnrichView } from "./EnrichView";
+import { VoiceCaptureModal } from "./VoiceCaptureModal";
 import { Person, Tag } from "@/lib/types";
 import { Squiggle } from "./Squiggle";
 
@@ -18,6 +20,7 @@ export function DossierApp() {
     addPerson, updatePerson, deletePerson, toggleStatus,
     addMeeting, deleteMeeting, addFollowup, removeFollowup,
   } = useDossier();
+  const [showVoice, setShowVoice] = useState(false);
 
   // ── Auth gate ──────────────────────────────────────────────────────────────
   if (loading) {
@@ -53,7 +56,7 @@ export function DossierApp() {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--ink)", display: "flex", flexDirection: "column" }}>
-      <Header />
+      <Header onVoiceCapture={user ? () => setShowVoice(true) : undefined} />
       <main className="container main-pad" style={{ flex: 1, width: "100%" }}>
         {route.name === "list" && (
           <ListView people={people} onOpen={openPerson} />
@@ -92,6 +95,16 @@ export function DossierApp() {
         )}
       </main>
       <Footer />
+      {showVoice && (
+        <VoiceCaptureModal
+          onSave={(payload) => {
+            const id = addPerson(payload);
+            setRoute({ name: "detail", id });
+          }}
+          onSaveAndAdd={(payload) => { addPerson(payload); }}
+          onClose={() => setShowVoice(false)}
+        />
+      )}
     </div>
   );
 }
