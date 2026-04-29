@@ -1,12 +1,12 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Person, Meeting, Tag, TAG_META } from "@/lib/types";
 import { FrameTag } from "./FrameTag";
 import { TextLink } from "./TextLink";
 import { UnderlinedInput } from "./UnderlinedInput";
-import { KV } from "./KV";
 import { Portrait } from "./Portrait";
 import { DraftEmailModal } from "./DraftEmailModal";
+import { useSpeechRecognition } from "@/lib/hooks/useSpeechRecognition";
 import { fmtDate, fmtDateLong, daysAgo, mkMeetingId, normalizeCity } from "@/lib/utils";
 
 interface DetailViewProps {
@@ -34,7 +34,6 @@ export function DetailView({
   onAddFollowup,
   onRemoveFollowup,
 }: DetailViewProps) {
-  const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(person);
   const [fetchingPhoto, setFetchingPhoto] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -43,8 +42,7 @@ export function DetailView({
 
   useEffect(() => {
     setDraft(person);
-    setEditing(false);
-  }, [person.id]);
+  }, [person]);
 
   const meetings = (person.meetings && person.meetings.length)
     ? [...person.meetings].sort((a, b) => b.date.localeCompare(a.date))
@@ -191,111 +189,76 @@ export function DetailView({
       <div className="asym-grid">
         {/* Left — catalog entry */}
         <div>
-          <div className="uc muted" style={{
-            marginBottom: 12,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "baseline",
-          }}>
+          <div className="uc muted" style={{ marginBottom: 12 }}>
             <span>§ Catalog entry</span>
-            {editing ? (
-              <span className="mono accent" style={{ fontSize: 10 }}>EDITING</span>
-            ) : (
-              <button
-                onClick={() => setEditing(true)}
-                className="uc"
-                style={{ fontSize: 10, letterSpacing: "0.14em", borderBottom: "1px solid var(--ink)", paddingBottom: 1, cursor: "pointer", background: "none", border: "none", color: "var(--ink)" }}
-              >
-                ⌇ Edit profile
-              </button>
-            )}
           </div>
 
-          {editing ? (
-            <div style={{ borderTop: "1px solid var(--ink)" }}>
-              {[
-                { k: "Name", field: "name" as keyof Person, type: "text" },
-                { k: "Role", field: "role" as keyof Person },
-                { k: "Company", field: "company" as keyof Person },
-                { k: "Met at", field: "location" as keyof Person },
-                { k: "Location", field: "metCity" as keyof Person },
-                { k: "Email", field: "email" as keyof Person, type: "email" },
-                { k: "Phone", field: "phone" as keyof Person, type: "tel" },
-                { k: "Twitter", field: "twitter" as keyof Person },
-                { k: "LinkedIn", field: "linkedin" as keyof Person },
-                { k: "Instagram", field: "instagram" as keyof Person },
-                { k: "Photo URL", field: "photo" as keyof Person },
-              ].map(({ k, field, type }) => (
-                <div key={field} style={{
-                  display: "grid",
-                  gridTemplateColumns: "110px 1fr",
-                  gap: 24,
-                  padding: "10px 0",
-                  borderBottom: "1px solid var(--rule)",
-                  alignItems: "baseline",
-                }}>
-                  <div className="uc muted">{k}</div>
-                  <input
-                    type={type || "text"}
-                    value={(draft[field] as string) ?? ""}
-                    onChange={e => setField(field)(e.target.value)}
-                    onBlur={() => saveField(field)}
-                    style={{
-                      width: "100%",
-                      background: "transparent",
-                      border: "none",
-                      borderBottom: "1px solid var(--rule)",
-                      paddingBottom: 2,
-                      fontSize: 15,
-                      fontWeight: 400,
-                      color: "var(--ink)",
-                      fontFamily: "inherit",
-                      outline: "none",
-                    }}
-                  />
-                </div>
-              ))}
-              <div style={{ padding: "16px 0 4px", display: "flex", gap: 20, alignItems: "baseline" }}>
-                <button
-                  onClick={() => setEditing(false)}
-                  style={{ fontSize: 14, fontWeight: 600, borderBottom: "1px solid var(--ink)", paddingBottom: 2, cursor: "pointer", background: "none", border: "none", color: "var(--ink)" }}
-                >
-                  ← Done editing
-                </button>
-                <button
-                  onClick={runEnrich}
-                  disabled={fetchingPhoto}
-                  style={{ fontSize: 13, fontWeight: 500, borderBottom: "1px solid var(--accent)", paddingBottom: 1, cursor: fetchingPhoto ? "default" : "pointer", background: "none", border: "none", color: "var(--accent)", opacity: fetchingPhoto ? 0.5 : 1 }}
-                >
-                  {fetchingPhoto ? "Enriching…" : "Enrich profile →"}
-                </button>
+          <div style={{ borderTop: "1px solid var(--ink)" }}>
+            {[
+              { k: "Name", field: "name" as keyof Person, type: "text" },
+              { k: "Role", field: "role" as keyof Person },
+              { k: "Company", field: "company" as keyof Person },
+              { k: "Met at", field: "location" as keyof Person },
+              { k: "Location", field: "metCity" as keyof Person },
+              { k: "Email", field: "email" as keyof Person, type: "email" },
+              { k: "Phone", field: "phone" as keyof Person, type: "tel" },
+              { k: "Twitter", field: "twitter" as keyof Person },
+              { k: "LinkedIn", field: "linkedin" as keyof Person },
+              { k: "Instagram", field: "instagram" as keyof Person },
+              { k: "Photo URL", field: "photo" as keyof Person },
+            ].map(({ k, field, type }) => (
+              <div key={field} style={{
+                display: "grid",
+                gridTemplateColumns: "110px 1fr",
+                gap: 24,
+                padding: "10px 0",
+                borderBottom: "1px solid var(--rule)",
+                alignItems: "baseline",
+              }}>
+                <div className="uc muted">{k}</div>
+                <input
+                  type={type || "text"}
+                  value={(draft[field] as string) ?? ""}
+                  onChange={e => setField(field)(e.target.value)}
+                  onBlur={() => saveField(field)}
+                  style={{
+                    width: "100%",
+                    background: "transparent",
+                    border: "none",
+                    paddingBottom: 2,
+                    fontSize: 15,
+                    fontWeight: 400,
+                    color: "var(--ink)",
+                    fontFamily: "inherit",
+                    outline: "none",
+                  }}
+                />
               </div>
-            </div>
-          ) : (
-            <div style={{ borderTop: "1px solid var(--ink)" }}>
-              <KV k="Role" v={person.role} />
-              <KV k="Company" v={person.company && person.company !== "—" ? person.company : null} />
-              <KV k="Met" v={person.location} />
-              <KV k="Location" v={person.metCity} />
-              <KV k="Captured">
+            ))}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "110px 1fr",
+              gap: 24,
+              padding: "10px 0",
+              borderBottom: "1px solid var(--rule)",
+              alignItems: "baseline",
+            }}>
+              <div className="uc muted">Captured</div>
+              <div style={{ fontSize: 15 }}>
                 <span>{fmtDateLong(person.captured)}</span>
                 {days != null && <span className="muted"> · {days} {days === 1 ? "day" : "days"} ago</span>}
-              </KV>
-              <KV k="Email">
-                {person.email ? <a href={`mailto:${person.email}`} style={{ borderBottom: "1px solid var(--rule)", paddingBottom: 1 }}>{person.email}</a> : null}
-              </KV>
-              <KV k="Phone" v={person.phone} />
-              <KV k="Twitter">
-                {person.twitter ? <a href={`https://twitter.com/${person.twitter.replace(/^@/, "").replace(/^https?:\/\/(www\.)?(twitter\.com|x\.com)\//, "")}`} target="_blank" rel="noopener noreferrer" style={{ borderBottom: "1px solid var(--rule)", paddingBottom: 1 }}>{person.twitter}</a> : null}
-              </KV>
-              <KV k="LinkedIn">
-                {person.linkedin ? <a href={person.linkedin.startsWith("http") ? person.linkedin : `https://${person.linkedin}`} target="_blank" rel="noopener noreferrer" style={{ borderBottom: "1px solid var(--rule)", paddingBottom: 1 }}>{person.linkedin}</a> : null}
-              </KV>
-              <KV k="Instagram">
-                {person.instagram ? <a href={`https://instagram.com/${person.instagram.replace(/^@/, "").replace(/^https?:\/\/(www\.)?instagram\.com\//, "")}`} target="_blank" rel="noopener noreferrer" style={{ borderBottom: "1px solid var(--rule)", paddingBottom: 1 }}>{person.instagram}</a> : null}
-              </KV>
+              </div>
             </div>
-          )}
+            <div style={{ padding: "16px 0 4px" }}>
+              <button
+                onClick={runEnrich}
+                disabled={fetchingPhoto}
+                style={{ fontSize: 13, fontWeight: 500, borderBottom: "1px solid var(--accent)", paddingBottom: 1, cursor: fetchingPhoto ? "default" : "pointer", background: "none", border: "none", color: "var(--accent)", opacity: fetchingPhoto ? 0.5 : 1 }}
+              >
+                {fetchingPhoto ? "Enriching…" : "Enrich profile →"}
+              </button>
+            </div>
+          </div>
 
           {/* Follow-ups */}
           <div style={{ marginTop: 36 }}>
@@ -538,6 +501,36 @@ function AddMeetingForm({ onAdd }: { onAdd: (m: { date: string; location: string
   const [date, setDate] = useState(today);
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
+  const [voicePhase, setVoicePhase] = useState<"idle" | "listening" | "parsing">("idle");
+  const { transcript, isListening, startListening, stopListening, reset } = useSpeechRecognition();
+
+  const handleVoiceClick = useCallback(async () => {
+    if (isListening) {
+      const final = stopListening();
+      if (!final) { setVoicePhase("idle"); return; }
+      setVoicePhase("parsing");
+      try {
+        const res = await fetch("/api/voice-meeting-parse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ transcript: final, today }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.date) setDate(data.date);
+          if (data.location) setLocation(data.location);
+          if (data.notes) setNotes(data.notes);
+        }
+      } catch { /* ignore, fields stay as-is */ }
+      setVoicePhase("idle");
+      reset();
+    } else {
+      reset();
+      startListening();
+      setVoicePhase("listening");
+    }
+  }, [isListening, stopListening, startListening, reset, today]);
 
   if (!open) {
     return (
@@ -557,8 +550,18 @@ function AddMeetingForm({ onAdd }: { onAdd: (m: { date: string; location: string
     if (!date) return;
     onAdd({ date, location: location.trim(), notes: notes.trim() });
     setDate(today); setLocation(""); setNotes("");
+    setVoicePhase("idle"); reset();
     setOpen(false);
   };
+
+  const MicIcon = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="2" width="6" height="12" rx="3"/>
+      <path d="M5 10a7 7 0 0 0 14 0"/>
+      <line x1="12" y1="19" x2="12" y2="22"/>
+      <line x1="9" y1="22" x2="15" y2="22"/>
+    </svg>
+  );
 
   return (
     <div style={{
@@ -567,10 +570,38 @@ function AddMeetingForm({ onAdd }: { onAdd: (m: { date: string; location: string
       padding: "20px 22px 22px",
       background: "var(--bg)",
     }}>
-      <div className="uc" style={{ fontSize: 11, letterSpacing: "0.14em", marginBottom: 16, display: "flex", justifyContent: "space-between" }}>
+      <div className="uc" style={{ fontSize: 11, letterSpacing: "0.14em", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span>New meeting</span>
-        <button onClick={() => setOpen(false)} className="muted" style={{ cursor: "pointer", background: "none", border: "none", color: "var(--muted)", fontSize: 12 }}>✕ cancel</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <button
+            onClick={handleVoiceClick}
+            title={isListening ? "Tap to finish" : "Fill with voice"}
+            style={{
+              background: "none", border: "none", cursor: "pointer", padding: 0,
+              color: isListening ? "#2d7a2d" : "var(--muted)",
+              display: "flex", alignItems: "center", gap: 5,
+              animation: isListening ? "mic-pulse 1.4s ease-in-out infinite" : "none",
+            }}
+          >
+            <MicIcon />
+            <span className="mono" style={{ fontSize: 9, letterSpacing: "0.1em" }}>
+              {voicePhase === "listening" ? "● LISTENING — tap to finish" : voicePhase === "parsing" ? "PARSING…" : "VOICE FILL"}
+            </span>
+          </button>
+          <button onClick={() => { setOpen(false); setVoicePhase("idle"); reset(); }} className="muted" style={{ cursor: "pointer", background: "none", border: "none", color: "var(--muted)", fontSize: 12 }}>✕ cancel</button>
+        </div>
       </div>
+
+      {/* Live transcript preview while listening */}
+      {isListening && transcript && (
+        <div style={{
+          borderLeft: "2px solid #2d7a2d", paddingLeft: 12, marginBottom: 16,
+          fontFamily: "Georgia, serif", fontStyle: "italic",
+          fontSize: 13, lineHeight: 1.55, color: "var(--muted)",
+        }}>
+          "{transcript}"
+        </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: 20, marginBottom: 16 }}>
         <div>
@@ -644,10 +675,17 @@ function AddMeetingForm({ onAdd }: { onAdd: (m: { date: string; location: string
         >
           Save meeting →
         </button>
-        <button onClick={() => setOpen(false)} className="muted" style={{ fontSize: 13, cursor: "pointer", background: "none", border: "none", color: "var(--muted)" }}>
+        <button onClick={() => { setOpen(false); setVoicePhase("idle"); reset(); }} className="muted" style={{ fontSize: 13, cursor: "pointer", background: "none", border: "none", color: "var(--muted)" }}>
           Discard
         </button>
       </div>
+
+      <style>{`
+        @keyframes mic-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
     </div>
   );
 }

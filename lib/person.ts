@@ -11,6 +11,7 @@ export interface PersonInput {
   location: string;
   metCity: string;
   notes: string;
+  followups?: string[];
   tag: Tag;
 }
 
@@ -31,7 +32,7 @@ export function createPersonPayload(input: PersonInput): Omit<Person, "id" | "me
     web: null,
     twitter: null,
     instagram: null,
-    followups: [],
+    followups: input.followups ?? [],
   };
 }
 

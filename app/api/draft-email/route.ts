@@ -37,13 +37,15 @@ ${context}
 
 Rules:
 - Plain text only — no markdown, no asterisks, no bullet points
-- Open by referencing how/where you met them naturally ("It was great meeting you at…", "Really enjoyed our conversation at…")
+- Start with a natural greeting using their first name only (e.g. "Hi Sarah," or "Hey James,")
+- After the greeting, open by referencing how/where you met them naturally ("It was great meeting you at…", "Really enjoyed our conversation at…")
 - If there are open follow-up items, weave them in naturally ("I wanted to follow up on the coffee we talked about having…", "Still thinking about your point on…")
 - If the notes mention something personal (being sick, a trip, a project, a book), acknowledge it ("Hope you're feeling better!", "How did the conference go?")
 - Most recent meeting notes should take priority over older ones
 - 3–4 short paragraphs max, concise and genuine
-- No subject line, no greeting salutation (start with the body), no sign-off
+- No subject line, no sign-off
 - First person, conversational — not corporate
+- No em dashes (—). Use commas, periods, or just rewrite the sentence instead.
 
 Return ONLY the email body text, nothing else.`,
       }],

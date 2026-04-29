@@ -59,7 +59,12 @@ export function DossierApp() {
       <Header onVoiceCapture={user ? () => setShowVoice(true) : undefined} />
       <main className="container main-pad" style={{ flex: 1, width: "100%" }}>
         {route.name === "list" && (
-          <ListView people={people} onOpen={openPerson} />
+          <ListView
+            people={people}
+            onOpen={openPerson}
+            onBulkDelete={(ids) => ids.forEach(id => deletePerson(id))}
+            onBulkUpdate={(ids, patch) => ids.forEach(id => updatePerson(id, patch))}
+          />
         )}
         {route.name === "capture" && (
           <CaptureView
@@ -94,7 +99,7 @@ export function DossierApp() {
           <EnrichView people={people} onOpen={openPerson} />
         )}
       </main>
-      <Footer />
+      <Footer people={people} />
       {showVoice && (
         <VoiceCaptureModal
           onSave={(payload) => {

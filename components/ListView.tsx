@@ -10,18 +10,22 @@ import { Squiggle } from "./Squiggle";
 interface ListViewProps {
   people: Person[];
   onOpen: (id: string) => void;
+  onBulkDelete?: (ids: string[]) => void;
+  onBulkUpdate?: (ids: string[], patch: Partial<Person>) => void;
 }
 
 type Filter = "all" | "networking" | "close" | "influential";
 
 type AiResult = { id: string; reason: string };
 
-export function ListView({ people, onOpen }: ListViewProps) {
+export function ListView({ people, onOpen, onBulkDelete, onBulkUpdate }: ListViewProps) {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
   const [aiResults, setAiResults] = useState<AiResult[] | null>(null);
   const [aiSearching, setAiSearching] = useState(false);
   const [showVoiceSearch, setShowVoiceSearch] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const runAiSearch = useCallback(async (q: string) => {
     if (!q.trim()) return;
@@ -47,6 +51,39 @@ export function ListView({ people, onOpen }: ListViewProps) {
     setAiResults(null);
     setAiSearching(false);
   }, []);
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const enterEditMode = useCallback(() => {
+    setEditMode(true);
+    setSelected(new Set());
+  }, []);
+
+  const exitEditMode = useCallback(() => {
+    setEditMode(false);
+    setSelected(new Set());
+  }, []);
+
+  const handleBulkDelete = useCallback(() => {
+    const ids = Array.from(selected);
+    if (!ids.length) return;
+    if (!confirm(`Delete ${ids.length} entr${ids.length === 1 ? "y" : "ies"}? This can't be undone.`)) return;
+    onBulkDelete?.(ids);
+    exitEditMode();
+  }, [selected, onBulkDelete, exitEditMode]);
+
+  const handleBulkStatus = useCallback((tag: Tag) => {
+    const ids = Array.from(selected);
+    if (!ids.length) return;
+    onBulkUpdate?.(ids, { tags: [tag] });
+    setSelected(new Set());
+  }, [selected, onBulkUpdate]);
 
   const handleVoiceResult = useCallback((transcript: string) => {
     setQuery(transcript);
@@ -87,7 +124,7 @@ export function ListView({ people, onOpen }: ListViewProps) {
 
   const lastUpdated = useMemo(() => {
     if (!people.length) return "";
-    const dates = people.flatMap(p => p.meetings?.map(m => m.date) || [p.captured]);
+    const dates = people.flatMap(p => p.meetings?.length ? p.meetings.map(m => m.date) : [p.captured]);
     const latest = dates.filter(Boolean).sort().reverse()[0];
     return fmtDate(latest);
   }, [people]);
@@ -101,7 +138,7 @@ export function ListView({ people, onOpen }: ListViewProps) {
         marginBottom: 36,
       }}>
         <div className="uc muted" style={{ marginBottom: 12 }}>
-          Issue № {String(people.length).padStart(3, "0")} · {getQuarterLabel()}
+          A digital rolodex
         </div>
         <h1 className="serif-display-instr" style={{
           margin: 0,
@@ -109,8 +146,8 @@ export function ListView({ people, onOpen }: ListViewProps) {
           lineHeight: 0.95,
           letterSpacing: "-0.015em",
         }}>
-          Everyone you&apos;ve ever<br />
-          met <span style={{ fontStyle: "italic" }}>in one place</span>.
+          The dossier of<br />
+          <span style={{ fontStyle: "italic" }}>everyone you know</span>.
         </h1>
       </div>
 
@@ -123,7 +160,7 @@ export function ListView({ people, onOpen }: ListViewProps) {
             value={query}
             onChange={e => { setQuery(e.target.value); clearAiSearch(); }}
             onKeyDown={e => { if (e.key === "Enter" && query.trim()) runAiSearch(query); }}
-            placeholder="name, role, place… or press Enter to ask a question"
+            placeholder="name, role, place — or click the voice icon to use AI search"
             style={{ fontSize: 16, padding: "4px 0", flex: 1, background: "transparent", border: "none", outline: "none", color: "var(--ink)", fontFamily: "inherit" }}
           />
           {aiSearching && (
@@ -166,8 +203,19 @@ export function ListView({ people, onOpen }: ListViewProps) {
             <FilterChip label="friend"       count={counts.close}       active={filter === "close"}       onClick={() => setFilter("close")} />
             <FilterChip label="influential"  count={counts.influential} active={filter === "influential"} onClick={() => setFilter("influential")} color="#2d7a2d" />
           </div>
-          <div className="mono muted" style={{ fontSize: 10 }}>
-            {String(people.length).padStart(3, "0")} entries · updated {lastUpdated}
+          <div style={{ display: "flex", alignItems: "baseline", gap: 16 }}>
+            <div className="mono muted" style={{ fontSize: 10 }}>
+              {String(people.length).padStart(3, "0")} entries · updated {lastUpdated}
+            </div>
+            {!editMode && (
+              <button
+                onClick={enterEditMode}
+                className="mono"
+                style={{ fontSize: 10, color: "var(--muted)", background: "none", border: "none", cursor: "pointer", letterSpacing: "0.06em", padding: 0, textDecoration: "underline", textUnderlineOffset: 3 }}
+              >
+                Edit list
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -196,6 +244,92 @@ export function ListView({ people, onOpen }: ListViewProps) {
         <span className="mono muted" style={{ fontSize: 10 }}>{String(filtered.length).padStart(3, "0")}</span>
       </div>
 
+      {/* Bulk edit action bar */}
+      {editMode && (
+        <div style={{
+          position: "sticky",
+          top: 100,
+          zIndex: 3,
+          background: "var(--bg)",
+          borderBottom: "1px solid var(--ink)",
+          padding: "10px 0",
+          display: "flex",
+          alignItems: "center",
+          gap: 16,
+          flexWrap: "wrap",
+        }}>
+          {/* Selection controls */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button
+              onClick={() => setSelected(new Set(filtered.map(p => p.id)))}
+              className="mono"
+              style={{ fontSize: 10, background: "none", border: "none", cursor: "pointer", color: "var(--ink)", letterSpacing: "0.06em", padding: 0, textDecoration: "underline", textUnderlineOffset: 3 }}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setSelected(new Set())}
+              className="mono"
+              style={{ fontSize: 10, background: "none", border: "none", cursor: "pointer", color: "var(--muted)", letterSpacing: "0.06em", padding: 0, textDecoration: "underline", textUnderlineOffset: 3 }}
+            >
+              None
+            </button>
+            <span className="mono muted" style={{ fontSize: 10 }}>
+              {selected.size} selected
+            </span>
+          </div>
+
+          {/* Spacer */}
+          <div style={{ flex: 1 }} />
+
+          {/* Status change */}
+          {selected.size > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span className="mono muted" style={{ fontSize: 9, letterSpacing: "0.08em" }}>SET STATUS</span>
+              {(["close", "networking", "influential"] as Tag[]).map(tag => (
+                <button
+                  key={tag}
+                  onClick={() => handleBulkStatus(tag)}
+                  className="mono"
+                  style={{
+                    fontSize: 9,
+                    letterSpacing: "0.08em",
+                    padding: "3px 8px",
+                    background: "none",
+                    border: "1px solid var(--ink)",
+                    cursor: "pointer",
+                    color: tag === "influential" ? "#2d7a2d" : "var(--ink)",
+                    borderColor: tag === "influential" ? "#2d7a2d" : "var(--ink)",
+                  }}
+                >
+                  {TAG_META[tag].label.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Delete */}
+          {selected.size > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              className="mono"
+              style={{ fontSize: 10, background: "none", border: "1px solid var(--ink)", cursor: "pointer", color: "var(--ink)", letterSpacing: "0.06em", padding: "3px 10px" }}
+            >
+              Delete {selected.size}
+            </button>
+          )}
+
+          {/* Done */}
+          <button
+            onClick={exitEditMode}
+            className="mono"
+            style={{ fontSize: 10, background: "var(--ink)", border: "1px solid var(--ink)", cursor: "pointer", color: "var(--bg)", letterSpacing: "0.06em", padding: "3px 10px" }}
+          >
+            Done
+          </button>
+        </div>
+      )}
+
       {/* Rows */}
       {filtered.length === 0 ? (
         <EmptyList query={query} filter={filter} aiMode={aiResults !== null} aiSearching={aiSearching} />
@@ -207,6 +341,9 @@ export function ListView({ people, onOpen }: ListViewProps) {
             onOpen={() => onOpen(p.id)}
             entryNum={people.indexOf(p) + 1}
             aiReason={aiReasonMap[p.id]}
+            editMode={editMode}
+            checked={selected.has(p.id)}
+            onToggle={() => toggleSelect(p.id)}
           />
         ))
       )}
@@ -228,13 +365,29 @@ export function ListView({ people, onOpen }: ListViewProps) {
   );
 }
 
-function PersonRow({ p, onOpen, entryNum, aiReason }: { p: Person; onOpen: () => void; entryNum: number; aiReason?: string }) {
+function PersonRow({ p, onOpen, entryNum, aiReason, editMode, checked, onToggle }: {
+  p: Person;
+  onOpen: () => void;
+  entryNum: number;
+  aiReason?: string;
+  editMode?: boolean;
+  checked?: boolean;
+  onToggle?: () => void;
+}) {
   const [hover, setHover] = useState(false);
   const statusTag = p.tags.find(t => ["close", "networking", "to-enrich", "influential"].includes(t));
 
+  const handleClick = editMode ? onToggle : onOpen;
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleClick?.();
+    }
+  };
+
   return (
     <div
-      onClick={onOpen}
+      onClick={handleClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       className="list-row-inner"
@@ -242,19 +395,36 @@ function PersonRow({ p, onOpen, entryNum, aiReason }: { p: Person; onOpen: () =>
         padding: "14px 0",
         borderBottom: "1px solid var(--rule)",
         cursor: "pointer",
-        background: hover ? "rgba(17,17,17,0.015)" : "transparent",
+        background: checked ? "rgba(17,17,17,0.04)" : hover ? "rgba(17,17,17,0.015)" : "transparent",
         transition: "background 60ms",
       }}
       role="button"
       tabIndex={0}
-      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
+      onKeyDown={handleKeyDown}
     >
       {/* Col 1 — Name stack */}
       <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 10, minWidth: 0, flexWrap: "wrap" }}>
-          <span className="mono" style={{ fontSize: 10, color: "var(--muted)", flexShrink: 0 }}>
-            {String(entryNum).padStart(3, "0")}
-          </span>
+          {editMode ? (
+            <div style={{
+              width: 14,
+              height: 14,
+              border: "1px solid var(--ink)",
+              background: checked ? "var(--ink)" : "transparent",
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              alignSelf: "center",
+              marginRight: 2,
+            }}>
+              {checked && <span style={{ color: "var(--bg)", fontSize: 9, lineHeight: 1, fontFamily: "monospace" }}>✓</span>}
+            </div>
+          ) : (
+            <span className="mono" style={{ fontSize: 10, color: "var(--muted)", flexShrink: 0 }}>
+              {String(entryNum).padStart(3, "0")}
+            </span>
+          )}
           <span style={{
             fontSize: 16,
             fontWeight: 600,

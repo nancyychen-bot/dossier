@@ -1,6 +1,7 @@
 export function fmtDate(iso: string): string {
   if (!iso) return "";
   const d = new Date(iso + "T00:00:00");
+  if (isNaN(d.getTime())) return "";
   const months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
   return `${String(d.getDate()).padStart(2, "0")} ${months[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
 }

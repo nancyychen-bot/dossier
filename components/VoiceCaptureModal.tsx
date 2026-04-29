@@ -12,12 +12,15 @@ interface ParsedFields {
   company: string;
   metCity: string;
   location: string;
+  phone: string;
   notes: string;
+  followups: string; // newline-separated for the textarea
   tag: Tag;
 }
 
 const EMPTY: ParsedFields = {
-  name: "", role: "", company: "", metCity: "", location: "", notes: "", tag: "to-enrich",
+  name: "", role: "", company: "", metCity: "", location: "",
+  phone: "", notes: "", followups: "", tag: "to-enrich",
 };
 
 type Phase = "idle" | "listening" | "parsing" | "review";
@@ -57,7 +60,10 @@ export function VoiceCaptureModal({ onSave, onSaveAndAdd, onClose }: Props) {
         setPhase("idle");
         return;
       }
-      setFields({ ...EMPTY, ...data });
+      setFields({
+        ...EMPTY, ...data,
+        followups: Array.isArray(data.followups) ? data.followups.join("\n") : (data.followups ?? ""),
+      });
       setPhase("review");
     } catch (err: any) {
       setParseError(`Network error — ${err?.message ?? "please try again."}`);
@@ -71,7 +77,9 @@ export function VoiceCaptureModal({ onSave, onSaveAndAdd, onClose }: Props) {
     company: fields.company,
     location: fields.location,
     metCity: fields.metCity,
+    phone: fields.phone,
     notes: fields.notes,
+    followups: fields.followups.split("\n").map(s => s.trim()).filter(Boolean),
     tag: fields.tag,
   }), [fields]);
 
@@ -285,8 +293,14 @@ export function VoiceCaptureModal({ onSave, onSaveAndAdd, onClose }: Props) {
                   <UnderlinedInput value={fields.metCity} onChange={set("metCity")} placeholder="City" />
                 </VField>
               </div>
+              <VField label="Phone">
+                <UnderlinedInput value={fields.phone} onChange={set("phone")} placeholder="+1 212 555 0100" />
+              </VField>
               <VField label="Notes">
                 <UnderlinedInput value={fields.notes} onChange={set("notes")} placeholder="What to remember" multiline rows={3} />
+              </VField>
+              <VField label="Follow-ups">
+                <UnderlinedInput value={fields.followups} onChange={set("followups")} placeholder="One per line" multiline rows={2} />
               </VField>
               <VField label="File under">
                 <div style={{ display: "flex", gap: 16, paddingTop: 4, flexWrap: "wrap" }}>

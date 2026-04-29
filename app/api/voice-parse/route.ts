@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
-          max_tokens: 512,
+          max_tokens: 800,
           messages: [{
             role: "user",
             content: `Extract contact info from a voice note. Return ONLY valid JSON. Omit keys with no info.
@@ -136,20 +136,18 @@ Keys:
 - company: their EMPLOYER / organization (e.g. "Notion", "Goldman Sachs") — never the meeting venue
 - location: the EVENT, VENUE, or SCENE where YOU met them (e.g. "Toronto music scene", "NFX Summit dinner") — never the company name
 - metCity: city WHERE THE MEETING HAPPENED — not where they live, are based, or work
-- notes: anything else worth remembering
+- phone: phone number if mentioned, in whatever format they said it
+- notes: EVERYTHING memorable about this person — interests, hobbies, opinions, things they said, books/shows/places they mentioned, personal details, what you talked about, what stood out. Be generous. If they said "she likes flying and traveling", that goes here.
+- followups: JSON array of specific action items or things to follow up on (e.g. ["Send them the article about X", "Intro them to Y", "Coffee in two weeks"]). Empty array if none.
 - tag: "close" | "networking" | "to-enrich" | "influential"
 
 Example 1:
-Input: "Met Sarah at the London fintech conference. She's a marketing lead at Stripe and lives in New York."
-Output: {"name":"Sarah","role":"Marketing Lead","company":"Stripe","location":"London fintech conference","metCity":"London","tag":"networking"}
+Input: "Met Sarah at the London fintech conference. She's a marketing lead at Stripe and lives in New York. She was really into sustainable investing and mentioned a book called The Alignment Problem. I should send her my essay on AI regulation."
+Output: {"name":"Sarah","role":"Marketing Lead","company":"Stripe","location":"London fintech conference","metCity":"London","notes":"Into sustainable investing. Recommended The Alignment Problem. Talked about AI regulation.","followups":["Send essay on AI regulation"],"tag":"networking"}
 
 Example 2:
-Input: "I met Nancy Chen in Toronto, in the Toronto music scene. She is based in New York and works as a marketing lead at Notion."
-Output: {"name":"Nancy Chen","role":"Marketing Lead","company":"Notion","location":"Toronto music scene","metCity":"Toronto","tag":"networking"}
-
-Example 3:
-Input: "Just had dinner with James, he's the co-founder of a fintech startup called Brex. We met at the YC demo day in San Francisco."
-Output: {"name":"James","role":"Co-founder","company":"Brex","location":"YC demo day","metCity":"San Francisco","tag":"influential"}
+Input: "Just had dinner with James, he's the co-founder of a fintech startup called Brex. We met at the YC demo day in San Francisco. Old friend, super connected. He loves kitesurfing and is moving to Lisbon. We said we'd grab coffee when I'm next in Europe."
+Output: {"name":"James","role":"Co-founder","company":"Brex","location":"YC demo day","metCity":"San Francisco","notes":"Old friend, very well connected. Loves kitesurfing. Moving to Lisbon.","followups":["Grab coffee when in Europe"],"tag":"close"}
 
 Now extract:
 Input: "${transcript.replace(/"/g, '\\"')}"
