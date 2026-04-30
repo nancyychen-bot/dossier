@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Person, Tag, TAG_META } from "@/lib/types";
 import { FrameTag } from "./FrameTag";
 import { FilterChip } from "./FilterChip";
@@ -18,15 +18,6 @@ type Filter = "all" | "networking" | "close" | "influential";
 
 type AiResult = { id: string; reason: string };
 
-type BulkField = "role" | "company" | "location" | "metCity";
-
-const BULK_FIELDS: { key: BulkField; label: string }[] = [
-  { key: "role", label: "Role" },
-  { key: "company", label: "Company" },
-  { key: "location", label: "Met at" },
-  { key: "metCity", label: "City" },
-];
-
 export function ListView({ people, onOpen, onBulkDelete, onBulkUpdate }: ListViewProps) {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
@@ -35,8 +26,6 @@ export function ListView({ people, onOpen, onBulkDelete, onBulkUpdate }: ListVie
   const [showVoiceSearch, setShowVoiceSearch] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [editingField, setEditingField] = useState<BulkField | null>(null);
-  const [fieldValue, setFieldValue] = useState("");
 
   const runAiSearch = useCallback(async (q: string) => {
     if (!q.trim()) return;
@@ -74,15 +63,11 @@ export function ListView({ people, onOpen, onBulkDelete, onBulkUpdate }: ListVie
   const enterEditMode = useCallback(() => {
     setEditMode(true);
     setSelected(new Set());
-    setEditingField(null);
-    setFieldValue("");
   }, []);
 
   const exitEditMode = useCallback(() => {
     setEditMode(false);
     setSelected(new Set());
-    setEditingField(null);
-    setFieldValue("");
   }, []);
 
   const handleBulkDelete = useCallback(() => {
@@ -100,15 +85,9 @@ export function ListView({ people, onOpen, onBulkDelete, onBulkUpdate }: ListVie
     setSelected(new Set());
   }, [selected, onBulkUpdate]);
 
-  const applyBulkField = useCallback(() => {
-    if (!editingField) return;
-    const ids = Array.from(selected);
-    if (!ids.length) { setEditingField(null); setFieldValue(""); return; }
-    onBulkUpdate?.(ids, { [editingField]: fieldValue.trim() });
-    setEditingField(null);
-    setFieldValue("");
-    setSelected(new Set());
-  }, [editingField, fieldValue, selected, onBulkUpdate]);
+  const handleRowUpdate = useCallback((id: string, patch: Partial<Person>) => {
+    onBulkUpdate?.([id], patch);
+  }, [onBulkUpdate]);
 
   const handleVoiceResult = useCallback((transcript: string) => {
     setQuery(transcript);
@@ -279,145 +258,78 @@ export function ListView({ people, onOpen, onBulkDelete, onBulkUpdate }: ListVie
           borderBottom: "1px solid var(--ink)",
           padding: "10px 0",
           display: "flex",
-          flexDirection: "column",
-          gap: 10,
+          alignItems: "center",
+          gap: 16,
+          flexWrap: "wrap",
         }}>
-          {/* Row 1: selection + status + delete + done */}
-          <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <button
-                onClick={() => setSelected(new Set(filtered.map(p => p.id)))}
-                className="mono"
-                style={{ fontSize: 10, background: "none", border: "none", cursor: "pointer", color: "var(--ink)", letterSpacing: "0.06em", padding: 0, textDecoration: "underline", textUnderlineOffset: 3 }}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setSelected(new Set())}
-                className="mono"
-                style={{ fontSize: 10, background: "none", border: "none", cursor: "pointer", color: "var(--muted)", letterSpacing: "0.06em", padding: 0, textDecoration: "underline", textUnderlineOffset: 3 }}
-              >
-                None
-              </button>
-              <span className="mono muted" style={{ fontSize: 10 }}>
-                {selected.size} selected
-              </span>
-            </div>
-
-            <div style={{ flex: 1 }} />
-
-            {selected.size > 0 && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span className="mono muted" style={{ fontSize: 9, letterSpacing: "0.08em" }}>SET STATUS</span>
-                {(["close", "networking", "influential"] as Tag[]).map(tag => (
-                  <button
-                    key={tag}
-                    onClick={() => handleBulkStatus(tag)}
-                    className="mono"
-                    style={{
-                      fontSize: 9,
-                      letterSpacing: "0.08em",
-                      padding: "3px 8px",
-                      background: "none",
-                      border: "1px solid var(--ink)",
-                      cursor: "pointer",
-                      color: tag === "influential" ? "#2d7a2d" : "var(--ink)",
-                      borderColor: tag === "influential" ? "#2d7a2d" : "var(--ink)",
-                    }}
-                  >
-                    {TAG_META[tag].label.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {selected.size > 0 && (
-              <button
-                onClick={handleBulkDelete}
-                className="mono"
-                style={{ fontSize: 10, background: "none", border: "1px solid var(--ink)", cursor: "pointer", color: "var(--ink)", letterSpacing: "0.06em", padding: "3px 10px" }}
-              >
-                Delete {selected.size}
-              </button>
-            )}
-
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button
-              onClick={exitEditMode}
+              onClick={() => setSelected(new Set(filtered.map(p => p.id)))}
               className="mono"
-              style={{ fontSize: 10, background: "var(--ink)", border: "1px solid var(--ink)", cursor: "pointer", color: "var(--bg)", letterSpacing: "0.06em", padding: "3px 10px" }}
+              style={{ fontSize: 10, background: "none", border: "none", cursor: "pointer", color: "var(--ink)", letterSpacing: "0.06em", padding: 0, textDecoration: "underline", textUnderlineOffset: 3 }}
             >
-              Done
+              All
             </button>
+            <button
+              onClick={() => setSelected(new Set())}
+              className="mono"
+              style={{ fontSize: 10, background: "none", border: "none", cursor: "pointer", color: "var(--muted)", letterSpacing: "0.06em", padding: 0, textDecoration: "underline", textUnderlineOffset: 3 }}
+            >
+              None
+            </button>
+            <span className="mono muted" style={{ fontSize: 10 }}>
+              {selected.size} selected
+            </span>
           </div>
 
-          {/* Row 2: bulk-edit fields */}
+          <div style={{ flex: 1 }} />
+
+          <span className="mono muted" style={{ fontSize: 9, letterSpacing: "0.08em" }}>
+            Type into any row to edit
+          </span>
+
           {selected.size > 0 && (
-            editingField ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                <span className="mono muted" style={{ fontSize: 9, letterSpacing: "0.08em" }}>
-                  SET {BULK_FIELDS.find(f => f.key === editingField)?.label.toUpperCase()} →
-                </span>
-                <input
-                  autoFocus
-                  value={fieldValue}
-                  onChange={e => setFieldValue(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === "Enter") applyBulkField();
-                    if (e.key === "Escape") { setEditingField(null); setFieldValue(""); }
-                  }}
-                  placeholder={`New ${BULK_FIELDS.find(f => f.key === editingField)?.label.toLowerCase()} for ${selected.size} ${selected.size === 1 ? "entry" : "entries"}`}
-                  style={{
-                    flex: 1,
-                    minWidth: 220,
-                    background: "transparent",
-                    border: "none",
-                    borderBottom: "1px solid var(--ink)",
-                    paddingBottom: 2,
-                    fontSize: 14,
-                    color: "var(--ink)",
-                    fontFamily: "inherit",
-                    outline: "none",
-                  }}
-                />
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span className="mono muted" style={{ fontSize: 9, letterSpacing: "0.08em" }}>SET STATUS</span>
+              {(["close", "networking", "influential"] as Tag[]).map(tag => (
                 <button
-                  onClick={applyBulkField}
+                  key={tag}
+                  onClick={() => handleBulkStatus(tag)}
                   className="mono"
-                  style={{ fontSize: 10, background: "var(--ink)", border: "1px solid var(--ink)", cursor: "pointer", color: "var(--bg)", letterSpacing: "0.06em", padding: "3px 10px" }}
+                  style={{
+                    fontSize: 9,
+                    letterSpacing: "0.08em",
+                    padding: "3px 8px",
+                    background: "none",
+                    border: "1px solid var(--ink)",
+                    cursor: "pointer",
+                    color: tag === "influential" ? "#2d7a2d" : "var(--ink)",
+                    borderColor: tag === "influential" ? "#2d7a2d" : "var(--ink)",
+                  }}
                 >
-                  Apply →
+                  {TAG_META[tag].label.toUpperCase()}
                 </button>
-                <button
-                  onClick={() => { setEditingField(null); setFieldValue(""); }}
-                  className="mono muted"
-                  style={{ fontSize: 10, background: "none", border: "none", cursor: "pointer", color: "var(--muted)", letterSpacing: "0.06em", padding: 0 }}
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <span className="mono muted" style={{ fontSize: 9, letterSpacing: "0.08em" }}>SET FIELD</span>
-                {BULK_FIELDS.map(({ key, label }) => (
-                  <button
-                    key={key}
-                    onClick={() => { setEditingField(key); setFieldValue(""); }}
-                    className="mono"
-                    style={{
-                      fontSize: 9,
-                      letterSpacing: "0.08em",
-                      padding: "3px 8px",
-                      background: "none",
-                      border: "1px solid var(--ink)",
-                      cursor: "pointer",
-                      color: "var(--ink)",
-                    }}
-                  >
-                    {label.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-            )
+              ))}
+            </div>
           )}
+
+          {selected.size > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              className="mono"
+              style={{ fontSize: 10, background: "none", border: "1px solid var(--ink)", cursor: "pointer", color: "var(--ink)", letterSpacing: "0.06em", padding: "3px 10px" }}
+            >
+              Delete {selected.size}
+            </button>
+          )}
+
+          <button
+            onClick={exitEditMode}
+            className="mono"
+            style={{ fontSize: 10, background: "var(--ink)", border: "1px solid var(--ink)", cursor: "pointer", color: "var(--bg)", letterSpacing: "0.06em", padding: "3px 10px" }}
+          >
+            Done
+          </button>
         </div>
       )}
 
@@ -435,6 +347,7 @@ export function ListView({ people, onOpen, onBulkDelete, onBulkUpdate }: ListVie
             editMode={editMode}
             checked={selected.has(p.id)}
             onToggle={() => toggleSelect(p.id)}
+            onUpdate={(patch) => handleRowUpdate(p.id, patch)}
           />
         ))
       )}
@@ -456,7 +369,7 @@ export function ListView({ people, onOpen, onBulkDelete, onBulkUpdate }: ListVie
   );
 }
 
-function PersonRow({ p, onOpen, entryNum, aiReason, editMode, checked, onToggle }: {
+function PersonRow({ p, onOpen, entryNum, aiReason, editMode, checked, onToggle, onUpdate }: {
   p: Person;
   onOpen: () => void;
   entryNum: number;
@@ -464,53 +377,61 @@ function PersonRow({ p, onOpen, entryNum, aiReason, editMode, checked, onToggle 
   editMode?: boolean;
   checked?: boolean;
   onToggle?: () => void;
+  onUpdate?: (patch: Partial<Person>) => void;
 }) {
   const [hover, setHover] = useState(false);
   const statusTag = p.tags.find(t => ["close", "networking", "to-enrich", "influential"].includes(t));
 
-  const handleClick = editMode ? onToggle : onOpen;
+  const handleRowClick = editMode ? undefined : onOpen;
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (editMode) return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      handleClick?.();
+      onOpen();
     }
   };
 
   return (
     <div
-      onClick={handleClick}
+      onClick={handleRowClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       className="list-row-inner"
       style={{
         padding: "14px 0",
         borderBottom: "1px solid var(--rule)",
-        cursor: "pointer",
-        background: checked ? "rgba(17,17,17,0.04)" : hover ? "rgba(17,17,17,0.015)" : "transparent",
+        cursor: editMode ? "default" : "pointer",
+        background: checked ? "rgba(17,17,17,0.04)" : hover && !editMode ? "rgba(17,17,17,0.015)" : "transparent",
         transition: "background 60ms",
       }}
-      role="button"
-      tabIndex={0}
+      role={editMode ? undefined : "button"}
+      tabIndex={editMode ? -1 : 0}
       onKeyDown={handleKeyDown}
     >
       {/* Col 1 — Name stack */}
       <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 10, minWidth: 0, flexWrap: "wrap" }}>
           {editMode ? (
-            <div style={{
-              width: 14,
-              height: 14,
-              border: "1px solid var(--ink)",
-              background: checked ? "var(--ink)" : "transparent",
-              flexShrink: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              alignSelf: "center",
-              marginRight: 2,
-            }}>
+            <button
+              onClick={onToggle}
+              aria-label={checked ? "Deselect" : "Select"}
+              style={{
+                width: 14,
+                height: 14,
+                border: "1px solid var(--ink)",
+                background: checked ? "var(--ink)" : "transparent",
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                alignSelf: "center",
+                marginRight: 2,
+                padding: 0,
+                cursor: "pointer",
+              }}
+            >
               {checked && <span style={{ color: "var(--bg)", fontSize: 9, lineHeight: 1, fontFamily: "monospace" }}>✓</span>}
-            </div>
+            </button>
           ) : (
             <span className="mono" style={{ fontSize: 10, color: "var(--muted)", flexShrink: 0 }}>
               {String(entryNum).padStart(3, "0")}
@@ -520,7 +441,7 @@ function PersonRow({ p, onOpen, entryNum, aiReason, editMode, checked, onToggle 
             fontSize: 16,
             fontWeight: 600,
             letterSpacing: "-0.015em",
-            borderBottom: hover ? "1px solid var(--ink)" : "1px solid transparent",
+            borderBottom: hover && !editMode ? "1px solid var(--ink)" : "1px solid transparent",
             paddingBottom: 1,
             overflowWrap: "break-word",
           }}>
@@ -535,19 +456,56 @@ function PersonRow({ p, onOpen, entryNum, aiReason, editMode, checked, onToggle 
       </div>
 
       {/* Col 2 — Role · Company (desktop) */}
-      <div className="hide-mobile" style={{ fontSize: 13, minWidth: 0, overflowWrap: "break-word", lineHeight: 1.35 }}>
-        <span>{p.role}</span>
-        {p.company && p.company !== "—" && <span className="muted">, {p.company}</span>}
+      <div className="hide-mobile" style={{ fontSize: 13, minWidth: 0, lineHeight: 1.35 }}>
+        {editMode ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <RowInput
+              value={p.role ?? ""}
+              placeholder="Role"
+              onCommit={(v) => onUpdate?.({ role: v })}
+            />
+            <RowInput
+              value={p.company && p.company !== "—" ? p.company : ""}
+              placeholder="Company"
+              onCommit={(v) => onUpdate?.({ company: v || "—" })}
+              muted
+            />
+          </div>
+        ) : (
+          <div style={{ overflowWrap: "break-word" }}>
+            <span>{p.role}</span>
+            {p.company && p.company !== "—" && <span className="muted">, {p.company}</span>}
+          </div>
+        )}
       </div>
 
       {/* Col 3 — Met at (desktop) */}
-      <div className="hide-mobile ital muted" style={{ fontSize: 13, minWidth: 0, overflowWrap: "break-word", lineHeight: 1.35 }}>
-        {p.location}
+      <div className="hide-mobile" style={{ fontSize: 13, minWidth: 0, lineHeight: 1.35 }}>
+        {editMode ? (
+          <RowInput
+            value={p.location ?? ""}
+            placeholder="Met at"
+            onCommit={(v) => onUpdate?.({ location: v })}
+            italic
+            muted
+          />
+        ) : (
+          <div className="ital muted" style={{ overflowWrap: "break-word" }}>{p.location}</div>
+        )}
       </div>
 
       {/* Col 4 — Location (desktop) */}
-      <div className="hide-mobile muted" style={{ fontSize: 13, minWidth: 0, overflowWrap: "break-word", lineHeight: 1.35 }}>
-        {p.metCity}
+      <div className="hide-mobile" style={{ fontSize: 13, minWidth: 0, lineHeight: 1.35 }}>
+        {editMode ? (
+          <RowInput
+            value={p.metCity ?? ""}
+            placeholder="City"
+            onCommit={(v) => onUpdate?.({ metCity: v })}
+            muted
+          />
+        ) : (
+          <div className="muted" style={{ overflowWrap: "break-word" }}>{p.metCity}</div>
+        )}
       </div>
 
       {/* Col 4 — Status */}
@@ -559,6 +517,43 @@ function PersonRow({ p, onOpen, entryNum, aiReason, editMode, checked, onToggle 
         )}
       </div>
     </div>
+  );
+}
+
+function RowInput({ value, placeholder, onCommit, italic, muted }: {
+  value: string;
+  placeholder: string;
+  onCommit: (v: string) => void;
+  italic?: boolean;
+  muted?: boolean;
+}) {
+  const [draft, setDraft] = useState(value);
+  useEffect(() => { setDraft(value); }, [value]);
+
+  return (
+    <input
+      value={draft}
+      onChange={e => setDraft(e.target.value)}
+      onClick={e => e.stopPropagation()}
+      onBlur={() => { if (draft !== value) onCommit(draft.trim()); }}
+      onKeyDown={e => {
+        if (e.key === "Enter") { (e.target as HTMLInputElement).blur(); }
+        if (e.key === "Escape") { setDraft(value); (e.target as HTMLInputElement).blur(); }
+      }}
+      placeholder={placeholder}
+      style={{
+        width: "100%",
+        background: "transparent",
+        border: "none",
+        borderBottom: "1px dashed var(--rule)",
+        paddingBottom: 1,
+        fontSize: 13,
+        fontStyle: italic ? "italic" : "normal",
+        color: muted ? "var(--muted)" : "var(--ink)",
+        fontFamily: "inherit",
+        outline: "none",
+      }}
+    />
   );
 }
 
