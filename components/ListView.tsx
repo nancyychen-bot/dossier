@@ -164,7 +164,7 @@ export function ListView({ people, onOpen, onBulkDelete, onBulkUpdate }: ListVie
             value={query}
             onChange={e => { setQuery(e.target.value); clearAiSearch(); }}
             onKeyDown={e => { if (e.key === "Enter" && query.trim()) runAiSearch(query); }}
-            placeholder="name, role, place — or click the voice icon to use AI search"
+            placeholder="name, role, place — press Enter to ask AI, or use the mic"
             style={{ fontSize: 16, padding: "4px 0", flex: 1, background: "transparent", border: "none", outline: "none", color: "var(--ink)", fontFamily: "inherit" }}
           />
           {aiSearching && (
