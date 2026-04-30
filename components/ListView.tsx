@@ -18,6 +18,15 @@ type Filter = "all" | "networking" | "close" | "influential";
 
 type AiResult = { id: string; reason: string };
 
+type BulkField = "role" | "company" | "location" | "metCity";
+
+const BULK_FIELDS: { key: BulkField; label: string }[] = [
+  { key: "role", label: "Role" },
+  { key: "company", label: "Company" },
+  { key: "location", label: "Met at" },
+  { key: "metCity", label: "City" },
+];
+
 export function ListView({ people, onOpen, onBulkDelete, onBulkUpdate }: ListViewProps) {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
@@ -26,6 +35,8 @@ export function ListView({ people, onOpen, onBulkDelete, onBulkUpdate }: ListVie
   const [showVoiceSearch, setShowVoiceSearch] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [editingField, setEditingField] = useState<BulkField | null>(null);
+  const [fieldValue, setFieldValue] = useState("");
 
   const runAiSearch = useCallback(async (q: string) => {
     if (!q.trim()) return;
@@ -63,11 +74,15 @@ export function ListView({ people, onOpen, onBulkDelete, onBulkUpdate }: ListVie
   const enterEditMode = useCallback(() => {
     setEditMode(true);
     setSelected(new Set());
+    setEditingField(null);
+    setFieldValue("");
   }, []);
 
   const exitEditMode = useCallback(() => {
     setEditMode(false);
     setSelected(new Set());
+    setEditingField(null);
+    setFieldValue("");
   }, []);
 
   const handleBulkDelete = useCallback(() => {
@@ -84,6 +99,16 @@ export function ListView({ people, onOpen, onBulkDelete, onBulkUpdate }: ListVie
     onBulkUpdate?.(ids, { tags: [tag] });
     setSelected(new Set());
   }, [selected, onBulkUpdate]);
+
+  const applyBulkField = useCallback(() => {
+    if (!editingField) return;
+    const ids = Array.from(selected);
+    if (!ids.length) { setEditingField(null); setFieldValue(""); return; }
+    onBulkUpdate?.(ids, { [editingField]: fieldValue.trim() });
+    setEditingField(null);
+    setFieldValue("");
+    setSelected(new Set());
+  }, [editingField, fieldValue, selected, onBulkUpdate]);
 
   const handleVoiceResult = useCallback((transcript: string) => {
     setQuery(transcript);
@@ -254,79 +279,145 @@ export function ListView({ people, onOpen, onBulkDelete, onBulkUpdate }: ListVie
           borderBottom: "1px solid var(--ink)",
           padding: "10px 0",
           display: "flex",
-          alignItems: "center",
-          gap: 16,
-          flexWrap: "wrap",
+          flexDirection: "column",
+          gap: 10,
         }}>
-          {/* Selection controls */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {/* Row 1: selection + status + delete + done */}
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button
+                onClick={() => setSelected(new Set(filtered.map(p => p.id)))}
+                className="mono"
+                style={{ fontSize: 10, background: "none", border: "none", cursor: "pointer", color: "var(--ink)", letterSpacing: "0.06em", padding: 0, textDecoration: "underline", textUnderlineOffset: 3 }}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setSelected(new Set())}
+                className="mono"
+                style={{ fontSize: 10, background: "none", border: "none", cursor: "pointer", color: "var(--muted)", letterSpacing: "0.06em", padding: 0, textDecoration: "underline", textUnderlineOffset: 3 }}
+              >
+                None
+              </button>
+              <span className="mono muted" style={{ fontSize: 10 }}>
+                {selected.size} selected
+              </span>
+            </div>
+
+            <div style={{ flex: 1 }} />
+
+            {selected.size > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className="mono muted" style={{ fontSize: 9, letterSpacing: "0.08em" }}>SET STATUS</span>
+                {(["close", "networking", "influential"] as Tag[]).map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => handleBulkStatus(tag)}
+                    className="mono"
+                    style={{
+                      fontSize: 9,
+                      letterSpacing: "0.08em",
+                      padding: "3px 8px",
+                      background: "none",
+                      border: "1px solid var(--ink)",
+                      cursor: "pointer",
+                      color: tag === "influential" ? "#2d7a2d" : "var(--ink)",
+                      borderColor: tag === "influential" ? "#2d7a2d" : "var(--ink)",
+                    }}
+                  >
+                    {TAG_META[tag].label.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {selected.size > 0 && (
+              <button
+                onClick={handleBulkDelete}
+                className="mono"
+                style={{ fontSize: 10, background: "none", border: "1px solid var(--ink)", cursor: "pointer", color: "var(--ink)", letterSpacing: "0.06em", padding: "3px 10px" }}
+              >
+                Delete {selected.size}
+              </button>
+            )}
+
             <button
-              onClick={() => setSelected(new Set(filtered.map(p => p.id)))}
+              onClick={exitEditMode}
               className="mono"
-              style={{ fontSize: 10, background: "none", border: "none", cursor: "pointer", color: "var(--ink)", letterSpacing: "0.06em", padding: 0, textDecoration: "underline", textUnderlineOffset: 3 }}
+              style={{ fontSize: 10, background: "var(--ink)", border: "1px solid var(--ink)", cursor: "pointer", color: "var(--bg)", letterSpacing: "0.06em", padding: "3px 10px" }}
             >
-              All
+              Done
             </button>
-            <button
-              onClick={() => setSelected(new Set())}
-              className="mono"
-              style={{ fontSize: 10, background: "none", border: "none", cursor: "pointer", color: "var(--muted)", letterSpacing: "0.06em", padding: 0, textDecoration: "underline", textUnderlineOffset: 3 }}
-            >
-              None
-            </button>
-            <span className="mono muted" style={{ fontSize: 10 }}>
-              {selected.size} selected
-            </span>
           </div>
 
-          {/* Spacer */}
-          <div style={{ flex: 1 }} />
-
-          {/* Status change */}
+          {/* Row 2: bulk-edit fields */}
           {selected.size > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span className="mono muted" style={{ fontSize: 9, letterSpacing: "0.08em" }}>SET STATUS</span>
-              {(["close", "networking", "influential"] as Tag[]).map(tag => (
-                <button
-                  key={tag}
-                  onClick={() => handleBulkStatus(tag)}
-                  className="mono"
-                  style={{
-                    fontSize: 9,
-                    letterSpacing: "0.08em",
-                    padding: "3px 8px",
-                    background: "none",
-                    border: "1px solid var(--ink)",
-                    cursor: "pointer",
-                    color: tag === "influential" ? "#2d7a2d" : "var(--ink)",
-                    borderColor: tag === "influential" ? "#2d7a2d" : "var(--ink)",
+            editingField ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <span className="mono muted" style={{ fontSize: 9, letterSpacing: "0.08em" }}>
+                  SET {BULK_FIELDS.find(f => f.key === editingField)?.label.toUpperCase()} →
+                </span>
+                <input
+                  autoFocus
+                  value={fieldValue}
+                  onChange={e => setFieldValue(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") applyBulkField();
+                    if (e.key === "Escape") { setEditingField(null); setFieldValue(""); }
                   }}
+                  placeholder={`New ${BULK_FIELDS.find(f => f.key === editingField)?.label.toLowerCase()} for ${selected.size} ${selected.size === 1 ? "entry" : "entries"}`}
+                  style={{
+                    flex: 1,
+                    minWidth: 220,
+                    background: "transparent",
+                    border: "none",
+                    borderBottom: "1px solid var(--ink)",
+                    paddingBottom: 2,
+                    fontSize: 14,
+                    color: "var(--ink)",
+                    fontFamily: "inherit",
+                    outline: "none",
+                  }}
+                />
+                <button
+                  onClick={applyBulkField}
+                  className="mono"
+                  style={{ fontSize: 10, background: "var(--ink)", border: "1px solid var(--ink)", cursor: "pointer", color: "var(--bg)", letterSpacing: "0.06em", padding: "3px 10px" }}
                 >
-                  {TAG_META[tag].label.toUpperCase()}
+                  Apply →
                 </button>
-              ))}
-            </div>
+                <button
+                  onClick={() => { setEditingField(null); setFieldValue(""); }}
+                  className="mono muted"
+                  style={{ fontSize: 10, background: "none", border: "none", cursor: "pointer", color: "var(--muted)", letterSpacing: "0.06em", padding: 0 }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span className="mono muted" style={{ fontSize: 9, letterSpacing: "0.08em" }}>SET FIELD</span>
+                {BULK_FIELDS.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => { setEditingField(key); setFieldValue(""); }}
+                    className="mono"
+                    style={{
+                      fontSize: 9,
+                      letterSpacing: "0.08em",
+                      padding: "3px 8px",
+                      background: "none",
+                      border: "1px solid var(--ink)",
+                      cursor: "pointer",
+                      color: "var(--ink)",
+                    }}
+                  >
+                    {label.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            )
           )}
-
-          {/* Delete */}
-          {selected.size > 0 && (
-            <button
-              onClick={handleBulkDelete}
-              className="mono"
-              style={{ fontSize: 10, background: "none", border: "1px solid var(--ink)", cursor: "pointer", color: "var(--ink)", letterSpacing: "0.06em", padding: "3px 10px" }}
-            >
-              Delete {selected.size}
-            </button>
-          )}
-
-          {/* Done */}
-          <button
-            onClick={exitEditMode}
-            className="mono"
-            style={{ fontSize: 10, background: "var(--ink)", border: "1px solid var(--ink)", cursor: "pointer", color: "var(--bg)", letterSpacing: "0.06em", padding: "3px 10px" }}
-          >
-            Done
-          </button>
         </div>
       )}
 
