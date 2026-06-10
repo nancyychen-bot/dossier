@@ -35,7 +35,6 @@ export function DetailView({
   onRemoveFollowup,
 }: DetailViewProps) {
   const [draft, setDraft] = useState(person);
-  const [fetchingPhoto, setFetchingPhoto] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [showDraftEmail, setShowDraftEmail] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -81,31 +80,6 @@ export function DetailView({
     } finally {
       setUploadingPhoto(false);
       e.target.value = "";
-    }
-  };
-
-  const runEnrich = async () => {
-    if (!person.email && !person.phone && !person.linkedin) return;
-    setFetchingPhoto(true);
-    try {
-      const qs = new URLSearchParams();
-      if (person.email)    qs.set("email", person.email);
-      if (person.phone)    qs.set("phone", person.phone);
-      if (person.linkedin) qs.set("linkedin", person.linkedin);
-      const res = await fetch(`/api/enrich?${qs.toString()}`);
-      const data = await res.json();
-      const patch: Partial<Person> = {};
-      if (data.photo    && !person.photo)                              patch.photo    = data.photo;
-      if (data.role     && !person.role)                               patch.role     = data.role;
-      if (data.company  && (!person.company || person.company === "—")) patch.company  = data.company;
-      if (data.twitter  && !person.twitter)                            patch.twitter  = data.twitter;
-      if (data.linkedin && !person.linkedin)                           patch.linkedin = data.linkedin;
-      if (data.web      && !person.web)                                patch.web      = data.web;
-      if (data.phone    && !person.phone)                              patch.phone    = data.phone;
-      if (data.email    && !person.email)                              patch.email    = data.email;
-      if (Object.keys(patch).length) onUpdate(patch);
-    } finally {
-      setFetchingPhoto(false);
     }
   };
 
@@ -168,9 +142,9 @@ export function DetailView({
             style={{ display: "none" }}
             onChange={handlePhotoUpload}
           />
-          {(fetchingPhoto || uploadingPhoto) && (
+          {uploadingPhoto && (
             <div className="mono muted" style={{ fontSize: 9, letterSpacing: "0.08em" }}>
-              {uploadingPhoto ? "UPLOADING…" : "ENRICHING…"}
+              UPLOADING…
             </div>
           )}
           {person.photo && (
@@ -248,15 +222,6 @@ export function DetailView({
                 <span>{fmtDateLong(person.captured)}</span>
                 {days != null && <span className="muted"> · {days} {days === 1 ? "day" : "days"} ago</span>}
               </div>
-            </div>
-            <div style={{ padding: "16px 0 4px" }}>
-              <button
-                onClick={runEnrich}
-                disabled={fetchingPhoto}
-                style={{ fontSize: 13, fontWeight: 500, borderBottom: "1px solid var(--accent)", paddingBottom: 1, cursor: fetchingPhoto ? "default" : "pointer", background: "none", border: "none", color: "var(--accent)", opacity: fetchingPhoto ? 0.5 : 1 }}
-              >
-                {fetchingPhoto ? "Enriching…" : "Enrich profile →"}
-              </button>
             </div>
           </div>
 
