@@ -540,7 +540,7 @@
         <li><strong>Rate limit:</strong> ~3 requests per second. Fine for one person.</li>
         <li><strong>No nested data:</strong> I serialized meetings and follow-ups as JSON inside rich-text fields.</li>
         <li><strong>Expiring image URLs:</strong> Used Vercel Blob for photos instead — permanent URLs.</li>
-        <li><strong>No real-time:</strong> The app fetches everything on login. Good enough.</li>
+        <li><strong>Real-time sync:</strong> The app fetches fresh data from Notion on every request — edits in Notion show up instantly in Dossier.</li>
       </ul>
       <div class="callout callout-blue">
         <div class="callout-icon">&#128172;</div>
