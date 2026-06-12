@@ -3,6 +3,14 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ["sharp"],
   },
+  async rewrites() {
+    return [
+      {
+        source: "/howto",
+        destination: "/how-i-built-dossier.html",
+      },
+    ];
+  },
   async headers() {
     return [
       {
